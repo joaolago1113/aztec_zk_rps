@@ -1,0 +1,133 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aztec Wallet UI</title>
+  <link rel="stylesheet" href="src/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="/aztec.png" type="image/png">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header></header>
+    <main id="content">
+      <div class="grid">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Account Selection</h3>
+            <p class="card-description">Choose an account to interact with.</p>
+          </div>
+          <div class="card-content">
+            <div id="accountContainer">
+              <select id="accountSelect" class="select">
+                <option value="" disabled selected>Select an account</option>
+              </select>
+              <button id="copyAddressButton" class="button icon-button" title="Copy address">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Create Account</h3>
+            <p class="card-description">Generate a new Aztec account and start using the Aztec protocol.</p>
+          </div>
+          <div class="card-content">
+            <form id="accountForm" class="form">
+              <div class="form-group">
+                <label for="accountSeed">Seed (optional):</label>
+                <input type="text" id="accountSeed" class="input" placeholder="Enter a custom seed or leave blank for random">
+              </div>
+              <div class="form-group checkbox-group">
+                <label>
+                  <span>Enable Two-Factor Authentication: </span>
+                  <div class="checkbox-wrapper">
+                    <input type="checkbox" id="use2FA" class="checkbox">
+                    <span class="checkbox-slider"></span>
+                  </div>
+                </label>
+              </div>
+              
+              <div class="form-actions">
+                <button type="submit" class="button primary-button">Create New Account</button>
+                <button type="reset" class="button secondary-button">Reset Form</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Export Keys</h3>
+            <p class="card-description">Export your account keys for backup purposes.</p>
+          </div>
+          <div class="card-content">
+            <button id="exportKeys" class="button secondary-button">Export Keys</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Import Account</h3>
+            <p class="card-description">Import an existing Aztec account using your secret key.</p>
+          </div>
+          <div class="card-content">
+            <button id="importKeys" class="button secondary-button">Import Keys</button>
+          </div>
+        </div>
+        <div id="qrCodeModal" class="modal" style="display: none;">
+          <div class="modal-content">
+            <h2>2FA Setup</h2>
+            <p>Scan this QR code with your authenticator app:</p>
+            <div id="qrCode"></div>
+            <p>Or enter this secret manually:</p>
+            <p id="hotpSecret" class="secret-text"></p>
+            <p class="warning">Warning: Save this information securely. You won't be able to see it again!</p>
+            <button id="closeQRModal" class="button primary-button">I've saved the information</button>
+          </div>
+        </div>
+        <div id="importKeysModal" class="modal" style="display: none;">
+          <div class="modal-content">
+            <h2>Import Account</h2>
+            <form id="importKeysForm">
+              <div class="form-group">
+                <label for="importSecretKey">Secret Key:</label>
+                <input type="text" id="importSecretKey" class="input" required>
+              </div>
+              <div class="form-group checkbox-group">
+                <label>
+                  <span>Is Two-Factor Authentication Enabled: </span>
+                  <div class="checkbox-wrapper">
+                    <input type="checkbox" id="importUse2FA" class="checkbox">
+                    <span class="checkbox-slider"></span>
+                  </div>
+                </label>
+              </div>
+              <div class="form-group" id="import2FASecretGroup" style="display: none;">
+                <label for="import2FASecret">2FA Secret:</label>
+                <input type="text" id="import2FASecret" class="input">
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="button primary-button">Import</button>
+                <button type="button" class="button secondary-button" id="cancelImport">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer></footer>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aztec Wallet UI - Bridge</title>
+  <link rel="stylesheet" href="src/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="/aztec.png" type="image/png">
+
+</head>
+<body>
+  <main>
+    <style>
+      .maintenance-overlay {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 93%;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .maintenance-message {
+        background-color: var(--card);
+        color: var(--card-foreground);
+        padding: 2rem;
+        border-radius: var(--radius);
+        text-align: center;
+        max-width: 80%;
+      }
+      .maintenance-message h2 {
+        margin-top: 0;
+      }
+    </style>
+    <div class="container">
+      <div class="card full-width-card">
+        <div class="card-header">
+          <h3 class="card-title">Bridge</h3>
+          <p class="card-description">Bridge tokens between Ethereum and Aztec.</p>
+        </div>
+        <div class="card-content">
+          <div class="bridge-grid">
+            <div class="bridge-card">
+              <h4>Deposit</h4>
+              <form id="depositForm" class="form">
+                <div class="form-group">
+                  <label for="depositToken" class="label">Token</label>
+                  <select id="depositToken" class="select">
+                    <!-- Token options will be dynamically added here -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="depositAmount" class="label">Amount</label>
+                  <input type="number" id="depositAmount" class="input" required min="0">
+                </div>
+                <div class="form-group">
+                  <label for="depositPrivate" class="label">Private Claiming</label>
+                  <input type="checkbox" id="depositPrivate" class="checkbox">
+                </div>
+                <button type="submit" class="button primary-button">Deposit</button>
+              </form>
+            </div>
+            <div class="bridge-card">
+              <h4>Withdraw</h4>
+              <form id="withdrawForm" class="form">
+                <div class="form-group">
+                  <label for="withdrawToken" class="label">Token</label>
+                  <select id="withdrawToken" class="select">
+                    <!-- Token options will be dynamically added here -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="withdrawAmount" class="label">Amount</label>
+                  <input type="number" id="withdrawAmount" class="input" required min="0">
+                </div>
+                <div class="form-group">
+                  <label for="withdrawPrivate" class="label">Private Claiming</label>
+                  <input type="checkbox" id="withdrawPrivate" class="checkbox">
+                </div>
+                <button type="submit" class="button primary-button">Withdraw</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Maintenance overlay -->
+    <div class="maintenance-overlay">
+    </div>
+  </body>
+  </main>
+  
+</html>

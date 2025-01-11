@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rock Paper Scissors - Aztec</title>
+  <link rel="stylesheet" href="src/style.css">
+  <style>
+    .game-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .game-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .move-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .move-button {
+      background: var(--primary);
+      color: var(--primary-foreground);
+      border: none;
+      padding: 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: transform 0.2s;
+      text-align: center;
+    }
+
+    .move-button:hover {
+      transform: translateY(-2px);
+      background: var(--accent);
+    }
+
+    .move-button.selected {
+      background: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .move-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .bet-input {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 1rem 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--background);
+      color: var(--foreground);
+    }
+
+    .action-button {
+      width: 100%;
+      padding: 1rem;
+      background: var(--accent);
+      color: var(--accent-foreground);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    .action-button:hover {
+      opacity: 0.9;
+    }
+
+    .game-history {
+      margin-top: 2rem;
+    }
+
+    .game-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: var(--secondary);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+    }
+
+    #logs {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: var(--card);
+      border-radius: var(--radius);
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+    }
+
+    .log-entry {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      border-left: 3px solid var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="game-container">
+      <h1>Rock Paper Scissors</h1>
+      
+      <div class="game-grid">
+        <!-- Start Game Section -->
+        <div class="game-card">
+          <h2>Start New Game</h2>
+          <p>Choose your move and set your bet amount</p>
+          
+          <div class="move-options">
+            <button class="move-button" data-move="0">
+              <div class="move-icon">✊</div>
+              Rock
+            </button>
+            <button class="move-button" data-move="1">
+              <div class="move-icon">✋</div>
+              Paper
+            </button>
+            <button class="move-button" data-move="2">
+              <div class="move-icon">✌️</div>
+              Scissors
+            </button>
+          </div>
+
+          <input type="number" id="betAmount" class="bet-input" placeholder="Enter bet amount" min="1" value="1">
+          <button id="startGame" class="action-button">Start Game</button>
+        </div>
+
+        <!-- Join Game Section -->
+        <div class="game-card">
+          <h2>Join Existing Game</h2>
+          <p>Enter game ID and choose your move</p>
+
+          <input type="number" id="gameId" class="bet-input" placeholder="Enter Game ID" min="0">
+          
+          <div class="move-options">
+            <button class="move-button" data-move="0">
+              <div class="move-icon">✊</div>
+              Rock
+            </button>
+            <button class="move-button" data-move="1">
+              <div class="move-icon">✋</div>
+              Paper
+            </button>
+            <button class="move-button" data-move="2">
+              <div class="move-icon">✌️</div>
+              Scissors
+            </button>
+          </div>
+
+          <button id="joinGame" class="action-button">Join Game</button>
+        </div>
+      </div>
+
+      <!-- Game History Section -->
+      <div class="game-history">
+        <h2>Game History</h2>
+        <div id="gamesList">
+          <!-- Game status entries will be added here dynamically -->
+        </div>
+      </div>
+
+      <!-- Logs Section -->
+      <div id="logs">
+        <div class="log-entry">Welcome to Rock Paper Scissors!</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Add click handlers for move buttons
+    document.querySelectorAll('.move-button').forEach(button => {
+      button.addEventListener('click', (e) => {
+        // Remove selected class from all buttons in the same section
+        const section = button.closest('.game-card');
+        section.querySelectorAll('.move-button').forEach(btn => {
+          btn.classList.remove('selected');
+        });
+        // Add selected class to clicked button
+        button.classList.add('selected');
+      });
+    });
+  </script>
+</body>
+</html> 

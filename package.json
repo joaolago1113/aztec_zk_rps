@@ -1,0 +1,30 @@
+{
+  "name": "zk-rps",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "prebuild": "bash scripts/build.sh",
+    "dev": "bash scripts/build.sh && vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf node_modules dist src/target src/contracts/target"
+  },
+  "dependencies": {
+    "@aztec/accounts": "0.69.0",
+    "@aztec/aztec.js": "0.69.0",
+    "@aztec/bb.js": "0.69.0",
+    "@aztec/circuit-types": "0.69.0",
+    "@aztec/circuits.js": "0.69.0",
+    "@aztec/foundation": "0.69.0",
+    "@aztec/noir-contracts.js": "0.69.0",
+    "hi-base32": "^0.5.1",
+    "qrcode-generator": "^1.4.4",
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "walletconnect": "^1.7.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.4",
+    "vite": "^5.4.0"
+  }
+}
