@@ -59,7 +59,7 @@ contract RockPaperScissors {
 
         // Transfer bet to contract
         Token::at(token_address)
-            .transfer_to_public(context.msg_sender(), context.this_address(), bet_amount, nonce)
+            .transfer_in_private(context.msg_sender(), context.this_address(), bet_amount, nonce)
             .call(&mut context);
         // Get the current length of games
 

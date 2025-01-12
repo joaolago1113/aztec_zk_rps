@@ -4,7 +4,9 @@ import { AccountService } from './AccountService.js';
 
 export class RPSService {
     private contract!: RockPaperScissorsContract;
-    private pxe: PXE;
+    private contractAddress!: AztecAddress;
+    private accountService!: AccountService;
+    private pxe!: PXE;
 
     constructor(pxe: PXE) {
       if (!pxe) {
@@ -17,19 +19,39 @@ export class RPSService {
      * Initialize the RPS contract by deploying or loading an existing instance
      * @param address - (Optional) The address of an existing RPS contract to load
      */
-    async initialize(address: AztecAddress, wallet: AccountService) {
+    async initialize(contractAddress: AztecAddress, accountService: AccountService) {
 
-        const currentWallet = await wallet.getCurrentWallet();
+        const currentWallet = await accountService.getCurrentWallet();
 
         if (!currentWallet) {
 
-            return;
-            //throw new Error('No wallet available. Please create an account first.');
+            console.log('No wallet available. Please create an account first.');
+
+        }else{
+            this.contract = await RockPaperScissorsContract.at(contractAddress, currentWallet);
         }
 
-        this.contract = await RockPaperScissorsContract.at(address, currentWallet);
-        
+        this.contractAddress = contractAddress;
+        this.accountService = accountService;
+
         console.log('RPS Contract initialized at:', this.contract.address.toString());
+    }
+
+    async assignContract(){
+
+        const currentWallet = await this.accountService.getCurrentWallet();
+
+        if (!currentWallet) {
+
+            console.log('No wallet available. Please create an account first.');
+
+            return 0;
+
+        }else{
+            this.contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet);
+        }
+
+        return 1;
     }
 
     /**
@@ -39,6 +61,12 @@ export class RPSService {
      * @returns The game ID
      */
     async startGame(playerMove: number, betAmount: string): Promise<Fr> {
+
+        if ((await this.assignContract()) == 0){
+            console.log('No wallet available. Please create an account first.');
+            return Fr.fromString("0");
+        }
+
         try {
             const betAmountFr = Fr.fromString(betAmount);
             const nonce = Fr.random(); // Generate random nonce for the transaction
@@ -65,8 +93,15 @@ export class RPSService {
      * Join an existing game
      * @param gameId - ID of the game to join
      * @param playerMove - Your move (0=Rock, 1=Paper, 2=Scissors)
+     * @returns 0 if no wallet available, 1 if game joined successfully
      */
-    async joinGame(gameId: string, playerMove: number): Promise<void> {
+    async joinGame(gameId: string, playerMove: number): Promise<number> {
+
+        if ((await this.assignContract()) == 0){
+            console.log('No wallet available. Please create an account first.');
+            return 0;
+        }
+
         try {
             const gameIdFr = Fr.fromString(gameId);
             const betMatch = Fr.fromString("1"); // TODO: Get actual bet amount from game
@@ -84,6 +119,7 @@ export class RPSService {
             console.error('Error joining game:', error);
             throw error;
         }
+        return 1;
     }
 
     /**

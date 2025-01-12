@@ -34,7 +34,7 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json';
+import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json' assert { type: 'json' };
 export const RockPaperScissorsContractArtifact = loadContractArtifact(RockPaperScissorsContractArtifactJson as NoirCompiledContract);
 
 

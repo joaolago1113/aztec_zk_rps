@@ -82,6 +82,8 @@ export class AccountService {
         }else{
           hotpSecret = '';
         }
+
+
         account = await this.setupAccount(secretKey, use2FA ? Buffer.from(hotpSecret) : Buffer.from([]));
         wallet = await this.getWallet(account);
         const partialAddress = computePartialAddress(account.getInstance());
@@ -112,8 +114,9 @@ export class AccountService {
     if(!totpSecretHash.byteLength){
       accountContract = new EcdsaKAccountContract(privateKey.toBuffer());
     }else{
-      throw new Error('2FA not supported');
+      throw new Error('2FA not supported anymore');
     }
+    console.log(accountContract);
 
     const account = new AccountManager(this.pxe, secretKey, accountContract!, Fr.ONE);
     return account;

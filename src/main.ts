@@ -11,10 +11,8 @@ import { AztecAddress } from '@aztec/aztec.js';
 import { renderHeader } from './components/Header.js';
 import { renderFooter } from './components/Footer.js';
 
-
 let rpsService: RPSService;
 let uiManager: UIManager;
-
 
 async function setupInitialTestAccounts(pxe: PXE): Promise<void> {
   try {
@@ -74,6 +72,7 @@ async function main() {
   window.addEventListener('hashchange', () => {
     renderPage();
   });
+
 
   // Initial page render
   renderPage();

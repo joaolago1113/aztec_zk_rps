@@ -57,50 +57,15 @@ export class UIManager {
     this.transactionService = transactionService;
   }
 
-
-  private async setupEventListeners() {
-    const startGameBtn = document.getElementById('startGame') as HTMLButtonElement;
-    const joinGameBtn = document.getElementById('joinGame') as HTMLButtonElement;
-    const logs = document.getElementById('logs') as HTMLDivElement;
-    const results = document.getElementById('results') as HTMLDivElement;
-  
-    startGameBtn.onclick = async () => {
-      const playerMove = (document.getElementById('playerMove') as HTMLSelectElement).value;
-      const betAmount = (document.getElementById('betAmount') as HTMLInputElement).value;
-      
-      try {
-        logs.innerHTML += 'Starting new game...\n';
-        const gameId = await this.rpsService.startGame(parseInt(playerMove), betAmount);
-        logs.innerHTML += `Game started! Game ID: ${gameId}\n`;
-      } catch (err: any) {
-        logs.innerHTML += `Error: ${err?.message || err}\n`;
-      }
-    };
-  
-    joinGameBtn.onclick = async () => {
-      const gameId = (document.getElementById('gameId') as HTMLInputElement).value;
-      const opponentMove = (document.getElementById('opponentMove') as HTMLSelectElement).value;
-      
-      try {
-        logs.innerHTML += `Joining game ${gameId}...\n`;
-        await this.rpsService.joinGame(gameId, parseInt(opponentMove));
-        logs.innerHTML += 'Successfully joined game!\n';
-      } catch (err: any) {
-        logs.innerHTML += `Error: ${err?.message || err}\n`;
-      }
-    };
-  }
-  
   
   constructor() {
     // Remove the call to createModal if it was here
   }
 
   private async handlePageChange() {
-    const hash = window.location.hash.slice(1) || 'accounts'; // Default to 'accounts' if hash is empty
+    const hash = window.location.hash.slice(1) || 'accounts';
     console.log('Page changed to:', hash);
     
-    // Add this line to initialize account info on every page change
     await this.initializeAccountInfo();
     
     switch (hash) {
@@ -119,7 +84,9 @@ export class UIManager {
       case 'bridge':
         await this.updateBridgePage();
         break;
-      // Add other cases for different pages if needed
+      case 'rps':
+        await this.setupRPSPage();
+        break;
     }
   }
 
@@ -1323,8 +1290,6 @@ export class UIManager {
     this.setupHashChangeListener();
     this.loadAccountState();
     this.setupDropdownMenu();
-    this.setupEventListeners();
-
     console.log('UI setup complete.');
   }
 
@@ -1677,6 +1642,50 @@ export class UIManager {
         const selectedFilter = filterSelect ? filterSelect.value : 'all';
         await this.displayTransactions(selectedFilter);
       });
+    }
+  }
+
+  private async setupRPSPage() {
+    const startGameBtn = document.getElementById('startGame') as HTMLButtonElement;
+    const joinGameBtn = document.getElementById('joinGame') as HTMLButtonElement;
+    const logs = document.getElementById('logs') as HTMLDivElement;
+
+    if (startGameBtn && joinGameBtn && logs) {
+      startGameBtn.onclick = async () => {
+        const selectedMove = document.querySelector('.move-button.selected')?.getAttribute('data-move');
+        const betAmount = (document.getElementById('betAmount') as HTMLInputElement).value;
+        
+        if (!selectedMove) {
+          logs.innerHTML += 'Please select a move first!\n';
+          return;
+        }
+
+        try {
+          logs.innerHTML += 'Starting new game...\n';
+          const gameId = await this.rpsService.startGame(parseInt(selectedMove), betAmount);
+          logs.innerHTML += `Game started! Game ID: ${gameId}\n`;
+        } catch (err: any) {
+          logs.innerHTML += `Error: ${err?.message || err}\n`;
+        }
+      };
+
+      joinGameBtn.onclick = async () => {
+        const gameId = (document.getElementById('gameId') as HTMLInputElement).value;
+        const selectedMove = document.querySelector('.game-card:nth-child(2) .move-button.selected')?.getAttribute('data-move');
+        
+        if (!selectedMove) {
+          logs.innerHTML += 'Please select a move first!\n';
+          return;
+        }
+
+        try {
+          logs.innerHTML += `Joining game ${gameId}...\n`;
+          await this.rpsService.joinGame(gameId, parseInt(selectedMove));
+          logs.innerHTML += 'Successfully joined game!\n';
+        } catch (err: any) {
+          logs.innerHTML += `Error: ${err?.message || err}\n`;
+        }
+      };
     }
   }
 }
