@@ -1,6 +1,8 @@
-import { Fr, PXE, AccountContract, AztecAddress, AccountWallet, AccountManager } from '@aztec/aztec.js';
+import { Fr, PXE, AztecAddress, AccountWallet, getContractInstanceFromDeployParams } from '@aztec/aztec.js';
 import { RockPaperScissorsContract } from '../contracts/src/artifacts/RockPaperScissors.js';
 import { AccountService } from './AccountService.js';
+import { PublicKeys } from '@aztec/circuits.js';
+import { CONFIG } from '../config.js';
 
 export class RPSService {
     private contract!: RockPaperScissorsContract;
@@ -20,21 +22,55 @@ export class RPSService {
      * @param address - (Optional) The address of an existing RPS contract to load
      */
     async initialize(contractAddress: AztecAddress, accountService: AccountService) {
-
         const currentWallet = await accountService.getCurrentWallet();
 
         if (!currentWallet) {
-
-            console.log('No wallet available. Please create an account first.');
-
-        }else{
-            this.contract = await RockPaperScissorsContract.at(contractAddress, currentWallet);
+            console.error('No wallet available. Please create an account first.');
+            return;
         }
 
-        this.contractAddress = contractAddress;
-        this.accountService = accountService;
+        try {
+            if (!(await this.pxe.isContractPubliclyDeployed(contractAddress))) {
+                throw new Error('Contract not deployed at the specified address');
+            }
 
-        console.log('RPS Contract initialized at:', this.contract.address.toString());
+            // Register the contract class
+            await this.pxe.registerContractClass(RockPaperScissorsContract.artifact);
+
+            // Get constructor artifact
+            const constructorArtifact = RockPaperScissorsContract.artifact.functions.find(f => f.name === 'constructor');
+            if (!constructorArtifact) {
+                throw new Error('Constructor not found in contract artifact');
+            }
+
+            // Create instance using the deployment parameters
+            const instance = {
+                address: contractAddress,
+                initializationHash: Fr.fromString(CONFIG.RPS_CONTRACT.INIT_HASH),
+                contractClassId: Fr.fromString(CONFIG.RPS_CONTRACT.CLASS_ID),
+                version: 1 as const,
+                salt: Fr.fromString(CONFIG.RPS_CONTRACT.DEPLOYMENT_SALT),
+                deployer: currentWallet.getAddress(),
+                publicKeys: PublicKeys.default(),
+                constructorArgs: [AztecAddress.fromString(CONFIG.RPS_CONTRACT.TOKEN_ADDRESS)]
+            };
+
+            // Register with the wallet instead of PXE directly
+            await currentWallet.registerContract({
+                artifact: RockPaperScissorsContract.artifact,
+                instance
+            });
+
+            // Create contract interface
+            this.contract = await RockPaperScissorsContract.at(contractAddress, currentWallet);
+            this.contractAddress = contractAddress;
+            this.accountService = accountService;
+
+            console.log('RPS Contract initialized at:', this.contract.address.toString());
+        } catch (error) {
+            console.error('Error initializing RPS contract:', error);
+            throw error;
+        }
     }
 
     async assignContract(){
