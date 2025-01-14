@@ -8,88 +8,102 @@
 </head>
 <body>
   <main>
-    <div class="game-container">
-      <div class="game-header">
-        <h1>Rock Paper Scissors</h1>
-        <p>Challenge your friends to a game of Rock Paper Scissors on the blockchain!</p>
-      </div>
-      
-      <div class="game-grid">
-        <!-- Start Game Section -->
-        <div class="game-card">
-          <h2>Start New Game</h2>
-          <p>Choose your move and set your bet amount:</p>
-          
-          <div class="move-options" id="startGameMoves">
-            <button class="move-button" data-move="0">
-              <div class="move-icon">✊</div>
-              Rock
-            </button>
-            <button class="move-button" data-move="1">
-              <div class="move-icon">✋</div>
-              Paper
-            </button>
-            <button class="move-button" data-move="2">
-              <div class="move-icon">✌️</div>
-              Scissors
-            </button>
-          </div>
-
-          <div class="bet-group">
-            <label for="betAmount" class="bet-label">Bet Amount (ETH)</label>
-            <input 
-              type="number" 
-              id="betAmount" 
-              class="bet-input" 
-              placeholder="Enter amount to bet" 
-              min="0.01" 
-              step="0.01"
-              value="0.1"
-            >
-          </div>
-          <button id="startGame" class="action-button"><span>Start Game</span></button>
+    <div class="container">
+      <div class="card full-width-card">
+        <div class="card-header">
+          <h3 class="card-title">Rock Paper Scissors</h3>
+          <p class="card-description">Challenge your friends to a game of Rock Paper Scissors on the blockchain!</p>
         </div>
+        
+        <div class="card-content">
+          <div class="game-grid">
+            <!-- Start Game Section -->
+            <div class="game-card">
+              <h4>Start New Game</h4>
+              <p class="card-description">Choose your move and set your bet amount:</p>
+              
+              <div class="move-options" id="startGameMoves">
+                <button class="move-button" data-move="0">
+                  <div class="move-icon">✊</div>
+                  Rock
+                </button>
+                <button class="move-button" data-move="1">
+                  <div class="move-icon">✋</div>
+                  Paper
+                </button>
+                <button class="move-button" data-move="2">
+                  <div class="move-icon">✌️</div>
+                  Scissors
+                </button>
+              </div>
 
-        <!-- Join Game Section -->
-        <div class="game-card">
-          <h2>Join Existing Game</h2>
-          <p>Enter a game ID and choose your move:</p>
+              <div class="game-actions">
+                <div class="form-group">
+                  <label for="betAmount" class="label">Bet Amount (TOKEN)</label>
+                  <div class="input-with-button">
+                    <input 
+                      type="number" 
+                      id="betAmount" 
+                      class="input" 
+                      placeholder="Enter amount to bet" 
+                      min="0.01" 
+                      step="0.01"
+                      value="1337"
+                    >
+                    <button id="startGame" class="button primary-button">Start Game</button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <div class="bet-group">
-            <label for="gameId" class="bet-label">Game ID</label>
-            <input 
-              type="number" 
-              id="gameId" 
-              class="bet-input" 
-              placeholder="Enter game ID to join" 
-              min="0"
-            >
+            <!-- Join Game Section -->
+            <div class="game-card">
+              <h4>Join Existing Game</h4>
+              <p class="card-description">Enter a game ID and choose your move:</p>
+
+              <div class="game-actions">
+                <div class="form-group">
+                  <label for="gameId" class="label">Game ID</label>
+                  <div class="input-with-button">
+                    <input 
+                      type="number" 
+                      id="gameId" 
+                      class="input" 
+                      placeholder="Enter game ID to join" 
+                      min="0"
+                    >
+                  </div>
+                </div>
+              </div>
+              
+              <div class="move-options" id="joinGameMoves">
+                <button class="move-button" data-move="0">
+                  <div class="move-icon">✊</div>
+                  Rock
+                </button>
+                <button class="move-button" data-move="1">
+                  <div class="move-icon">✋</div>
+                  Paper
+                </button>
+                <button class="move-button" data-move="2">
+                  <div class="move-icon">✌️</div>
+                  Scissors
+                </button>
+              </div>
+
+              <div class="game-actions">
+                <button id="joinGame" class="button primary-button">Join Game</button>
+              </div>
+            </div>
           </div>
-          
-          <div class="move-options" id="joinGameMoves">
-            <button class="move-button" data-move="0">
-              <div class="move-icon">✊</div>
-              Rock
-            </button>
-            <button class="move-button" data-move="1">
-              <div class="move-icon">✋</div>
-              Paper
-            </button>
-            <button class="move-button" data-move="2">
-              <div class="move-icon">✌️</div>
-              Scissors
-            </button>
+
+          <!-- Game History Section -->
+          <div class="game-history">
+            <h4>Game History</h4>
+            <div id="logs" class="logs-container">
+              <div class="log-entry">Welcome to Rock Paper Scissors! Choose your move to begin.</div>
+            </div>
           </div>
-
-          <button id="joinGame" class="action-button"><span>Join Game</span></button>
-        </div>
-      </div>
-
-      <!-- Game History Section -->
-      <div class="game-history">
-        <h2>Game History</h2>
-        <div id="logs">
-          <div class="log-entry">Welcome to Rock Paper Scissors! Choose your move to begin.</div>
         </div>
       </div>
     </div>

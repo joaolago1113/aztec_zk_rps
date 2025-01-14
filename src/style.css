@@ -1384,19 +1384,14 @@ footer nav a:hover {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .game-card {
-  background: #1f2937;
-  border-radius: 0.75rem;
+  background: var(--card);
+  border-radius: var(--radius);
   padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s ease;
-}
-
-.game-card:hover {
-  transform: translateY(-5px);
+  border: 1px solid var(--border);
 }
 
 .game-card h2 {
@@ -1413,31 +1408,33 @@ footer nav a:hover {
 .move-options {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin: 1.5rem 0;
+  gap: 1rem;
 }
 
 .move-button {
-  background: #374151;
-  color: #f9fafb;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  width: 30%;
+  width: 33%;
 }
 
 .move-button:hover {
-  background: #4b5563;
+  background: var(--muted);
 }
 
 .move-button.selected {
-  background: #10b981;
-  color: #f9fafb;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
 }
 
 .move-icon {
@@ -1445,165 +1442,69 @@ footer nav a:hover {
   margin-bottom: 0.5rem;
 }
 
-.input-group {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.bet-input {
-  background: #374151;
-  color: #f9fafb;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  margin-right: 1rem;
-  width: 100%;
-}
-
-.action-button {
-  background: #10b981;
-  color: #f9fafb;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  width: 100%;
-}
-
-.action-button:hover {
-  background: #059669;
-}
-
-.action-button span {
-  display: inline-block;
-  position: relative;
-  transition: 0.3s;
-}
-
-.action-button span:after {
-  content: '»';
-  position: absolute;
-  opacity: 0;
-  top: 0;
-  right: -20px;
-  transition: 0.3s;
-}
-
-.action-button:hover span {
-  padding-right: 25px;
-}
-
-.action-button:hover span:after {
-  opacity: 1;
-  right: 0;
-}
-
 .game-history {
-  background: #1f2937;
-  border-radius: 0.75rem;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.game-history h2 {
-  font-size: 1.5rem;
-  color: #6ee7b7;
-  margin-bottom: 1rem;
-}
-
-#logs {
-  background: #374151;
-  border-radius: 0.5rem;
+.logs-container {
+  background: var(--background);
+  border-radius: var(--radius);
   padding: 1rem;
   max-height: 200px;
   overflow-y: auto;
+  border: 1px solid var(--border);
 }
 
 .log-entry {
-  color: #f9fafb;
+  color: var(--foreground);
   margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+.log-entry:last-child {
+  border-bottom: none;
 }
 
-::-webkit-scrollbar-track {
-  background: #374151;
-  border-radius: 4px;
+@media (max-width: 768px) {
+  .game-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: #6ee7b7;
-  border-radius: 4px;
+.game-actions {
+  margin-top: 1.5rem;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #10b981;
-}
-
-/* Update/add these styles */
-.bet-group {
+.input-with-button {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  align-items: flex-start;
 }
 
-.bet-label {
-  color: #d1d5db;
-  font-size: 0.9rem;
-  font-weight: 500;
+.input-with-button .input {
+  flex: 1;
 }
 
-.bet-input {
-  background: #374151;
-  color: #f9fafb;
-  border: 1px solid #4b5563;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  width: 100%;
-  font-size: 1rem;
-  transition: all 0.2s ease;
+.input-with-button .button {
+  min-width: 120px;
+  height: 42px; /* Match input height */
 }
 
-.bet-input:focus {
-  outline: none;
-  border-color: #6ee7b7;
-  box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.1);
+/* Adjust move options margin */
+.move-options {
+  margin: 2rem 0;
 }
 
-.bet-input::placeholder {
-  color: #9ca3af;
+/* Make game card padding more consistent */
+.game-card {
+  padding: 2rem;
 }
 
-/* Fix the arrow issue */
-.action-button {
-  position: relative;
-  overflow: hidden;
-}
-
-.action-button span {
-  display: inline-block;
-  transition: transform 0.3s ease;
-}
-
-.action-button:hover span {
-  transform: translateX(-10px);
-}
-
-.action-button::after {
-  content: '»';
-  position: absolute;
-  right: 1.5rem;
-  opacity: 0;
-  transition: all 0.3s ease;
-}
-
-.action-button:hover::after {
-  opacity: 1;
-  right: 1rem;
+/* Ensure consistent spacing */
+.game-card .form-group:last-child {
+  margin-bottom: 0;
 }
