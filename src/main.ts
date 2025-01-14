@@ -50,8 +50,7 @@ async function main() {
   const keystore = KeystoreFactory.getKeystore();  
   const accountService = new AccountService(pxe, keystore, uiManager);
 
-  const contractAddress = AztecAddress.fromString(CONFIG.ROCK_PAPER_SCISSORS_ADDRESS);
-  await rpsService.initialize( contractAddress, accountService );
+  await rpsService.initialize( accountService );
 
   uiManager.setRPSService(rpsService);
   uiManager.setAccountService(accountService);

@@ -17,6 +17,10 @@ Aztec Wallet UI is a comprehensive, feature-rich wallet application built on the
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Running the Application](#running-the-application)
+- [Deploying the Rock Paper Scissors Contract](#deploying-the-rock-paper-scissors-contract)
+  - [Creating a Wallet](#creating-a-wallet)
+  - [Deploying a Token](#deploying-a-token)
+  - [Deploying the RPS Contract](#deploying-the-rps-contract)
 - [Project Structure](#project-structure)
 - [License](#license)
 
@@ -123,216 +127,81 @@ Ensure you have the following installed on your system:
 
 Start the development server:
 
-```bash
-yarn dev
 ```
 
-Open your browser and navigate to `http://localhost:5173` to view the application.
+### Deploying the Rock Paper Scissors Contract
+
+Before you can use the Rock Paper Scissors game, you need to deploy both a token contract (for betting) and the RPS contract itself. Here's how to do it:
+
+1. **Start the Sandbox Environment**
+
+   First, start the Aztec sandbox environment:
+
+   ```bash
+   aztec start --sandbox
+   ```
+
+2. **Creating a Wallet**
+
+   Before deploying contracts, you need a wallet. Create one using:
+
+   ```bash
+   aztec-cli create-private-wallet
+   ```
+
+   This will create a new wallet and store it as `my-wallet`.
+
+3. **Deploying a Token**
+
+   Deploy the token contract that will be used for betting:
+
+   ```bash
+   aztec-wallet deploy TokenContractArtifact \
+     --from accounts:my-wallet \
+     --args accounts:my-wallet TestToken TST 18 \
+     -a testtoken
+   ```
+
+   Save the token contract address from the output. It will look something like:
+   ```
+   Contract deployed at 0x2e79e7b857ad43be762a2c32e5cc09425a743987ed1f1bed6ed520f60aac7702
+   ```
+
+4. **Deploying the RPS Contract**
+
+   Deploy the Rock Paper Scissors contract using the token address from the previous step:
+
+   ```bash
+   aztec-wallet deploy src/contracts/target/rock_paper_scissors-RockPaperScissors.json \
+     --from accounts:my-wallet \
+     --args <TOKEN_ADDRESS> \
+     -a rps
+   ```
+
+   Replace `<TOKEN_ADDRESS>` with the address from step 3.
+
+   The contract will be deployed and you'll see output like:
+   ```
+   Contract deployed at 0x168c6f6879cbbaec4d82ef8e4b4d081edc39810a06bc110f2f627da1be75f914
+   ```
+
+5. **Update Configuration**
+
+   Update the contract addresses in your `src/config.ts`:
+
+   ```typescript
+   export const CONFIG = {
+     // ...other config
+     ROCK_PAPER_SCISSORS_ADDRESS: '<RPS_CONTRACT_ADDRESS>',
+     RPS_CONTRACT: {
+       TOKEN_ADDRESS: '<TOKEN_ADDRESS>',
+       // ...other config
+     }
+   };
+   ```
+
+Now your contracts are deployed and the app is ready to use! You can start the development server and begin playing Rock Paper Scissors.
 
 ## Project Structure
 
-Here's an overview of the project's directory and file structure:
-
-```
-aztec_wallet/
-├── index.html
-├── package.json
-├── public
-│   ├── apps.html
-│   ├── aztec.png
-│   ├── bridge.html
-│   ├── footer.html
-│   ├── header.html
-│   ├── tokens.html
-│   └── transactions.html
-├── src
-│   ├── components
-│   │   ├── Footer.ts
-│   │   └── Header.ts
-│   ├── config.ts
-│   ├── contracts
-│   │   ├── EcdsaKHOTPAccountContract.ts
-│   │   ├── Nargo.toml
-│   │   ├── src
-│   │   │   ├── hotp_note.nr
-│   │   │   └── main.nr
-│   │   └── target
-│   │       ├── ecdsa_k_hotp_account_contract-EcdsaKHOTPAccount.json
-│   │       └── ecdsa_k_hotp_account_contract-EcdsaKHOTPAccount.json.bak
-│   ├── factories
-│   │   ├── KeystoreFactory.ts
-│   │   ├── PXEFactory.ts
-│   │   └── WalletSdkFactory.ts
-│   ├── main.ts
-│   ├── services
-│   │   ├── AccountService.ts
-│   │   ├── BridgeService.ts
-│   │   ├── TokenService.ts
-│   │   ├── TransactionService.ts
-│   │   └── WalletConnectService.ts
-│   ├── style.css
-│   ├── ui
-│   │   └── UIManager.ts
-│   ├── utils
-│   │   ├── CryptoUtils.ts
-│   │   ├── CustomWalletUtils.ts
-│   │   └── Keystore.ts
-│   └── vite-env.d.ts
-├── tsconfig.json
-├── vite.config.ts
-└── yarn.lock
-```
-
-### Detailed Breakdown
-
-- **`index.html`**
-  - **Purpose**: The main entry point of the application and HTML of the accounts page.
-
-- **`package.json`**
-  - **Purpose**: Defines the project dependencies, scripts, metadata, and other configuration details necessary for the Node.js environment.
-
-- **`public/`**
-  - **Description**: Contains all the static assets and HTML files that are served directly to the client.
-  
-  - **HTML Files:**
-    - **`apps.html`**
-      - **Purpose**: Interface for connecting external applications using WalletConnect.
-      
-    - **`footer.html`**
-      - **Purpose**: The footer section of the application, typically containing links to privacy policy, terms of service, etc.
-      
-    - **`header.html`**
-      - **Purpose**: The header section, including the logo, navigation links, and account dropdown menu.
-      
-    - **`tokens.html`**
-      - **Purpose**: Interface for managing tokens, including viewing balances, creating/minting/importing tokens, and handling redeeming shields.
-      
-    - **`transactions.html`**
-      - **Purpose**: Displays the transaction history with filtering options.
-  
-  - **Static Assets:**
-    - **`aztec.png`**
-      - **Purpose**: The favicon or logo image used in the application.
-
-#### `src/`
-
-- **`components/`**
-  - **Purpose**: Reusable UI components used across different parts of the application.
-  
-  - **Files:**
-    - **`Footer.ts`**
-      - **Purpose**: Defines the footer component of the application.
-      
-    - **`Header.ts`**
-      - **Purpose**: Defines the header component, including the logo, navigation links, and account dropdown.
-
-- **`config.ts`**
-  - **Purpose**: Stores configuration constants such as RPC URLs, PXE URLs, WalletConnect project ID, and SDK metadata.
-
-- **`contracts/`**
-  - **Purpose**: Contains smart contract-related files and configurations.
-  
-  - **Files and Directories:**
-    - **`EcdsaKHOTPAccountContract.ts`**
-      - **Purpose**: Defines the custom account contract supporting ECDSA and HOTP (HMAC-based One-Time Password) for 2FA.
-      
-    - **`Nargo.toml`**
-      - **Purpose**: Configuration file for the Nargo tool, which is used for compiling Noir smart contracts.
-      
-    - **`src/`**
-      - **Purpose**: Contains Noir (`.nr`) smart contract source files.
-      
-      - **Files:**
-        - **`hotp_note.nr`**
-          - **Purpose**: Defines the structure and logic for HOTP-based notes.
-          
-        - **`main.nr`**
-          - **Purpose**: The main Noir smart contract file implementing the wallet's core functionalities.
-    
-    - **`target/`**
-      - **Purpose**: Output directory for compiled smart contracts and related artifacts.
-      
-      - **Files:**
-        - **`ecdsa_k_hotp_account_contract-EcdsaKHOTPAccount.json`**
-          - **Purpose**: Compiled JSON artifact of the ECDSA and HOTP account contract.
-          
-        - **`ecdsa_k_hotp_account_contract-EcdsaKHOTPAccount.json.bak`**
-          - **Purpose**: Backup file for the compiled contract JSON artifact.
-
-- **`factories/`**
-  - **Purpose**: Contains factory pattern classes responsible for creating and managing instances of various services and SDKs.
-  
-  - **Files:**
-    - **`KeystoreFactory.ts`**
-      - **Purpose**: Manages the creation and retrieval of the `Keystore` instance.
-      
-    - **`PXEFactory.ts`**
-      - **Purpose**: Handles the creation and initialization of the `PXE` (Privacy Execution Environment) instance.
-      
-    - **`WalletSdkFactory.ts`**
-      - **Purpose**: Responsible for creating and providing a singleton instance of the `ShieldswapWalletSdk`.
-
-- **`main.ts`**
-  - **Purpose**: The primary TypeScript file that initializes the application, sets up services, and manages the overall app lifecycle.
-
-- **`services/`**
-  - **Purpose**: Service classes encapsulating business logic and interacting with different parts of the application.
-  
-  - **Files:**
-    - **`AccountService.ts`**
-      - **Purpose**: Manages account-related operations such as creating, importing, and managing user accounts with optional 2FA.
-      
-    - **`TokenService.ts`**
-      - **Purpose**: Manages token-related operations such as creating, minting, shielding, unshielding, redeeming and transferring tokens.
-      
-    - **`TransactionService.ts`**
-      - **Purpose**: Handles transaction-related functionalities including fetching, saving, and managing transaction history.
-      
-    - **`WalletConnectService.ts`**
-      - **Purpose**: Manages WalletConnect integrations, enabling connections with decentralized applications.
-
-- **`style.css`**
-  - **Purpose**: Defines the visual styling of the application, including layout, colors, typography, and responsive design elements.
-
-- **`ui/`**
-  - **Purpose**: UI management classes responsible for updating and interacting with the user interface.
-  
-  - **Files:**
-    - **`UIManager.ts`**
-      - **Purpose**: Oversees UI updates, handles user interactions, manages modals, and interfaces with various services to reflect changes in the UI.
-
-- **`utils/`**
-  - **Purpose**: Utility functions and helper classes to support various operations within the application.
-  
-  - **Files:**
-    - **`CryptoUtils.ts`**
-      - **Purpose**: Contains cryptographic utility functions for creating secret keys.
-      
-    - **`CustomWalletUtils.ts`**
-      - **Purpose**: Provides custom utility specific to the wallet's requirements.
-      
-    - **`Keystore.ts`**
-      - **Purpose**: Implements the `Keystore` class responsible for securely storing and retrieving sensitive data like private keys and transaction history.
-
-- **`vite-env.d.ts`**
-  - **Purpose**: Provides TypeScript declarations for Vite-specific global variables and modules.
-
-## Environment Versions
-
-To ensure a smooth and compatible development experience with Aztec Wallet UI Starter, please verify that your environment matches the following software versions:
-
-| **Tool**           | **Version**                                                                                       |
-|--------------------|---------------------------------------------------------------------------------------------------|
-| **Aztec**          | `0.54.0`                                                                                           |
-| **Nargo**          | `0.33.0`                                                                                           |
-| **Noir**           | `0.33.0+8ac81b15cd2a3b57493bfbfe444086deac8f3dc8`                                                  |
-| **Node.js**        | `v22.2.0`                                                                                          |
-| **Yarn**           | `1.22.22`                                                                                          |
-
 ## License
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

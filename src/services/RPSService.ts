@@ -1,7 +1,7 @@
 import { Fr, PXE, AztecAddress, AccountWallet, getContractInstanceFromDeployParams } from '@aztec/aztec.js';
 import { RockPaperScissorsContract } from '../contracts/src/artifacts/RockPaperScissors.js';
 import { AccountService } from './AccountService.js';
-import { PublicKeys } from '@aztec/circuits.js';
+import { PublicKeys, getContractClassFromArtifact } from '@aztec/circuits.js';
 import { CONFIG } from '../config.js';
 
 export class RPSService {
@@ -21,7 +21,7 @@ export class RPSService {
      * Initialize the RPS contract by deploying or loading an existing instance
      * @param address - (Optional) The address of an existing RPS contract to load
      */
-    async initialize(contractAddress: AztecAddress, accountService: AccountService) {
+    async initialize(accountService: AccountService) {
         const currentWallet = await accountService.getCurrentWallet();
 
         if (!currentWallet) {
@@ -30,6 +30,8 @@ export class RPSService {
         }
 
         try {
+            const contractAddress = AztecAddress.fromString(CONFIG.RPS_CONTRACT.ADDRESS);
+
             if (!(await this.pxe.isContractPubliclyDeployed(contractAddress))) {
                 throw new Error('Contract not deployed at the specified address');
             }
@@ -43,14 +45,16 @@ export class RPSService {
                 throw new Error('Constructor not found in contract artifact');
             }
 
+            const contractClass = getContractClassFromArtifact(RockPaperScissorsContract.artifact);
+            const contractClassId = contractClass.id;
             // Create instance using the deployment parameters
             const instance = {
                 address: contractAddress,
                 initializationHash: Fr.fromString(CONFIG.RPS_CONTRACT.INIT_HASH),
-                contractClassId: Fr.fromString(CONFIG.RPS_CONTRACT.CLASS_ID),
+                contractClassId: contractClassId,
                 version: 1 as const,
                 salt: Fr.fromString(CONFIG.RPS_CONTRACT.DEPLOYMENT_SALT),
-                deployer: currentWallet.getAddress(),
+                deployer: AztecAddress.fromString(CONFIG.RPS_CONTRACT.DEPLOYER),
                 publicKeys: PublicKeys.default(),
                 constructorArgs: [AztecAddress.fromString(CONFIG.RPS_CONTRACT.TOKEN_ADDRESS)]
             };
