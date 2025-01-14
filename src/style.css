@@ -560,14 +560,41 @@ footer nav a:hover {
 }
 
 .action-button {
-  padding: 0.5rem 1rem;
+  position: relative;
+  background: #10b981;
+  color: #f9fafb;
   border: none;
-  border-radius: var(--radius);
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s;
-  margin:auto;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.action-button:hover {
+  background: #059669;
+}
+
+.action-button span {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.action-button::after {
+  content: '→';
+  position: absolute;
+  opacity: 0;
+  margin-left: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.action-button:hover span {
+  transform: translateX(-10px);
+}
+
+.action-button:hover::after {
+  opacity: 1;
+  transform: translateX(5px);
 }
 
 .send-button {
@@ -1320,4 +1347,263 @@ footer nav a:hover {
 .code-input:focus {
   outline: none;
   box-shadow: none;
+}
+
+.game-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+  background: linear-gradient(135deg, #1f2937, #111827);
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.game-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.game-header h1 {
+  font-size: 3rem;
+  background: linear-gradient(to right, #6ee7b7, #9ae6b4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
+}
+
+.game-header p {
+  color: #d1d5db;
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.game-card {
+  background: #1f2937;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease;
+}
+
+.game-card:hover {
+  transform: translateY(-5px);
+}
+
+.game-card h2 {
+  font-size: 1.5rem;
+  color: #6ee7b7;
+  margin-bottom: 1rem;
+}
+
+.game-card p {
+  color: #d1d5db;
+  margin-bottom: 1.5rem;
+}
+
+.move-options {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.move-button {
+  background: #374151;
+  color: #f9fafb;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 30%;
+}
+
+.move-button:hover {
+  background: #4b5563;
+}
+
+.move-button.selected {
+  background: #10b981;
+  color: #f9fafb;
+}
+
+.move-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.bet-input {
+  background: #374151;
+  color: #f9fafb;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  margin-right: 1rem;
+  width: 100%;
+}
+
+.action-button {
+  background: #10b981;
+  color: #f9fafb;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  width: 100%;
+}
+
+.action-button:hover {
+  background: #059669;
+}
+
+.action-button span {
+  display: inline-block;
+  position: relative;
+  transition: 0.3s;
+}
+
+.action-button span:after {
+  content: '»';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.3s;
+}
+
+.action-button:hover span {
+  padding-right: 25px;
+}
+
+.action-button:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+
+.game-history {
+  background: #1f2937;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.game-history h2 {
+  font-size: 1.5rem;
+  color: #6ee7b7;
+  margin-bottom: 1rem;
+}
+
+#logs {
+  background: #374151;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.log-entry {
+  color: #f9fafb;
+  margin-bottom: 0.5rem;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6ee7b7;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+/* Update/add these styles */
+.bet-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.bet-label {
+  color: #d1d5db;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.bet-input {
+  background: #374151;
+  color: #f9fafb;
+  border: 1px solid #4b5563;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.bet-input:focus {
+  outline: none;
+  border-color: #6ee7b7;
+  box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.1);
+}
+
+.bet-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Fix the arrow issue */
+.action-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.action-button span {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.action-button:hover span {
+  transform: translateX(-10px);
+}
+
+.action-button::after {
+  content: '»';
+  position: absolute;
+  right: 1.5rem;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.action-button:hover::after {
+  opacity: 1;
+  right: 1rem;
 }

@@ -1290,6 +1290,8 @@ export class UIManager {
     this.setupHashChangeListener();
     this.loadAccountState();
     this.setupDropdownMenu();
+    this.setupRPSPage();
+
     console.log('UI setup complete.');
   }
 
@@ -1646,46 +1648,114 @@ export class UIManager {
   }
 
   private async setupRPSPage() {
-    const startGameBtn = document.getElementById('startGame') as HTMLButtonElement;
-    const joinGameBtn = document.getElementById('joinGame') as HTMLButtonElement;
-    const logs = document.getElementById('logs') as HTMLDivElement;
-
-    if (startGameBtn && joinGameBtn && logs) {
-      startGameBtn.onclick = async () => {
-        const selectedMove = document.querySelector('.move-button.selected')?.getAttribute('data-move');
-        const betAmount = (document.getElementById('betAmount') as HTMLInputElement).value;
+    // Add click handlers for move buttons in both sections
+    document.querySelectorAll('#startGameMoves .move-button, #joinGameMoves .move-button').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLButtonElement;
+        // Find the parent move-options container
+        const container = target.closest('.move-options');
+        if (!container) return;
         
+        // Remove selected class from all buttons in this container
+        container.querySelectorAll('.move-button').forEach(btn => {
+          btn.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked button
+        target.classList.add('selected');
+      });
+    });
+
+    // Add click handler for Start Game button
+    const startGameBtn = document.getElementById('startGame');
+    if (startGameBtn) {
+      startGameBtn.addEventListener('click', async () => {
+        const selectedMove = document.querySelector('#startGameMoves .move-button.selected') as HTMLButtonElement;
         if (!selectedMove) {
-          logs.innerHTML += 'Please select a move first!\n';
+          this.addRPSLog('Please select a move first!');
+          return;
+        }
+
+        const betAmountInput = document.getElementById('betAmount') as HTMLInputElement;
+        const betAmount = betAmountInput.value;
+        if (!betAmount || parseFloat(betAmount) <= 0) {
+          this.addRPSLog('Please enter a valid bet amount!');
           return;
         }
 
         try {
-          logs.innerHTML += 'Starting new game...\n';
-          const gameId = await this.rpsService.startGame(parseInt(selectedMove), betAmount);
-          logs.innerHTML += `Game started! Game ID: ${gameId}\n`;
+          this.addRPSLog('Starting new game...');
+          const gameId = await this.rpsService.startGame(parseInt(selectedMove.dataset.move!), betAmount);
+          this.addRPSLog(`Game started with ${this.getMoveText(selectedMove.dataset.move!)} and bet ${betAmount}! Game ID: ${gameId}`);
+          
+          // Clear selection and reset bet amount
+          document.querySelectorAll('#startGameMoves .move-button').forEach(btn => 
+            btn.classList.remove('selected')
+          );
+          betAmountInput.value = '1';
         } catch (err: any) {
-          logs.innerHTML += `Error: ${err?.message || err}\n`;
+          this.addRPSLog(`Error: ${err?.message || err}`);
         }
-      };
+      });
+    }
 
-      joinGameBtn.onclick = async () => {
-        const gameId = (document.getElementById('gameId') as HTMLInputElement).value;
-        const selectedMove = document.querySelector('.game-card:nth-child(2) .move-button.selected')?.getAttribute('data-move');
-        
+    // Add click handler for Join Game button
+    const joinGameBtn = document.getElementById('joinGame');
+    if (joinGameBtn) {
+      joinGameBtn.addEventListener('click', async () => {
+        const selectedMove = document.querySelector('#joinGameMoves .move-button.selected') as HTMLButtonElement;
         if (!selectedMove) {
-          logs.innerHTML += 'Please select a move first!\n';
+          this.addRPSLog('Please select a move first!');
+          return;
+        }
+
+        const gameIdInput = document.getElementById('gameId') as HTMLInputElement;
+        const gameId = gameIdInput.value;
+        if (!gameId) {
+          this.addRPSLog('Please enter a game ID!');
           return;
         }
 
         try {
-          logs.innerHTML += `Joining game ${gameId}...\n`;
-          await this.rpsService.joinGame(gameId, parseInt(selectedMove));
-          logs.innerHTML += 'Successfully joined game!\n';
+          this.addRPSLog(`Joining game ${gameId}...`);
+          await this.rpsService.joinGame(gameId, parseInt(selectedMove.dataset.move!));
+          this.addRPSLog(`Successfully joined game ${gameId} with ${this.getMoveText(selectedMove.dataset.move!)}!`);
+          
+          // Clear selection and game ID
+          document.querySelectorAll('#joinGameMoves .move-button').forEach(btn => 
+            btn.classList.remove('selected')
+          );
+          gameIdInput.value = '';
         } catch (err: any) {
-          logs.innerHTML += `Error: ${err?.message || err}\n`;
+          this.addRPSLog(`Error: ${err?.message || err}`);
         }
-      };
+      });
+    }
+  }
+
+  private addRPSLog(message: string) {
+    const logs = document.getElementById('logs');
+    if (logs) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = message;
+      logs.appendChild(entry);
+      logs.scrollTop = logs.scrollHeight;
+
+      // Keep only the last 50 messages
+      const entries = logs.getElementsByClassName('log-entry');
+      while (entries.length > 50) {
+        entries[0].remove();
+      }
+    }
+  }
+
+  private getMoveText(move: string): string {
+    switch (move) {
+      case '0': return '✊ Rock';
+      case '1': return '✋ Paper';
+      case '2': return '✌️ Scissors';
+      default: return 'Unknown';
     }
   }
 }
