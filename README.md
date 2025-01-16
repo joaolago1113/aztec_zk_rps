@@ -126,7 +126,6 @@ Ensure you have the following installed on your system:
 ### Running the Application
 
 Start the development server:
-
 ```
 
 ### Deploying the Rock Paper Scissors Contract
@@ -174,7 +173,7 @@ Before you can use the Rock Paper Scissors game, you need to deploy both a token
    ```bash
    aztec-wallet deploy src/contracts/target/rock_paper_scissors-RockPaperScissors.json \
      --from accounts:my-wallet \
-     --args <TOKEN_ADDRESS> \
+     --args contracts:testtoken \
      -a rps
    ```
 
@@ -201,6 +200,12 @@ Before you can use the Rock Paper Scissors game, you need to deploy both a token
    ```
 
 Now your contracts are deployed and the app is ready to use! You can start the development server and begin playing Rock Paper Scissors.
+
+
+mint_to_private to a wallet: aztec-wallet send mint_to_private --from accounts:my-wallet --contract-address contracts:testtoken --args accounts:my-wallet <WALLET_ADDRESS> 10000000 
+
+
+
 
 ## Project Structure
 

@@ -55,18 +55,22 @@ contract RockPaperScissors {
     ) {
         assert(player1_move as u8 <= 2, "Invalid move!");
         
-        let token_address = AztecAddress { inner: storage.token_address.get_note().value };
+        // Get token address from storage and verify it exists
+        let token_note = storage.token_address.get_note();
+        assert(token_note.value != Field::from(0), "Token address not initialized");
+        
+        let token_address = AztecAddress { inner: token_note.value };
 
-        // Transfer bet to contract
+        // Try to transfer tokens first
         Token::at(token_address)
             .transfer_in_private(context.msg_sender(), context.this_address(), bet_amount, nonce)
             .call(&mut context);
 
-        // Get the current length of games
+        // Get current games length
         let games_length = storage.games_length.get_note().note.value;
         let game_id = games_length + Field::from(1);
         
-        // Create game note with ID
+        // Create and insert game note
         let mut game_note = GameNote::new(
             game_id,
             player1_move, 
@@ -74,9 +78,6 @@ contract RockPaperScissors {
             bet_amount
         );
 
-       // Set the note header
-        
-        // Insert the note into storage
         storage.games.insert(&mut game_note);
 
         // Update games length

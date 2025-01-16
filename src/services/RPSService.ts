@@ -12,6 +12,8 @@ export class RPSService {
     private accountService!: AccountService;
     private tokenContractAddress!: AztecAddress;
     private pxe!: PXE;
+    private contractInitialized: boolean = false;
+    private tokenContractInitialized: boolean = false;
 
     constructor(pxe: PXE) {
       if (!pxe) {
@@ -33,6 +35,7 @@ export class RPSService {
         this.contractAddress = contractAddress;
         this.accountService = accountService;
         
+
         const currentWallet = await accountService.getCurrentWallet();
 
         if (!currentWallet) {
@@ -40,9 +43,20 @@ export class RPSService {
             return;
         }
 
+        
+        await this.initializeContract(accountService);
+        await this.initializeTokenContract(accountService);
+    }
+
+
+
+    private async initializeContract(accountService: AccountService) {
+        const currentWallet = await accountService.getCurrentWallet();
         try {
 
-            if (!(await this.pxe.isContractPubliclyDeployed(contractAddress))) {
+            this.contractInitialized = true;
+
+            if (!(await this.pxe.isContractPubliclyDeployed(this.contractAddress))) {
                 throw new Error('Contract not deployed at the specified address');
             }
 
@@ -59,7 +73,7 @@ export class RPSService {
             const contractClassId = contractClass.id;
             // Create instance using the deployment parameters
             const instance = {
-                address: contractAddress,
+                address: this.contractAddress,
                 initializationHash: Fr.fromString(CONFIG.RPS_CONTRACT.INIT_HASH),
                 contractClassId: contractClassId,
                 version: 1 as const,
@@ -70,26 +84,28 @@ export class RPSService {
             };
 
             // Register with the wallet instead of PXE directly
-            await currentWallet.registerContract({
+            await currentWallet!.registerContract({
                 artifact: RockPaperScissorsContract.artifact,
                 instance
             });
 
             // Create contract interface
-            this.contract = await RockPaperScissorsContract.at(contractAddress, currentWallet);
-
-
+            this.contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet!);
 
             console.log('RPS Contract initialized at:', this.contract.address.toString());
         } catch (error) {
             console.error('Error initializing RPS contract:', error);
             throw error;
         }
+    }
 
-
+    private async initializeTokenContract(accountService: AccountService) {
+        const currentWallet = await accountService.getCurrentWallet();
         try {
 
-            if (!(await this.pxe.isContractPubliclyDeployed(tokenContractAddress))) {
+            this.tokenContractInitialized = true;
+
+            if (!(await this.pxe.isContractPubliclyDeployed(this.tokenContractAddress))) {
                 throw new Error('Contract not deployed at the specified address');
             }
 
@@ -106,7 +122,7 @@ export class RPSService {
             const contractClassId = contractClass.id;
             // Create instance using the deployment parameters
             const instance = {
-                address: tokenContractAddress,
+                address: this.tokenContractAddress,
                 initializationHash: Fr.fromString(CONFIG.TOKEN_CONTRACT.INIT_HASH),
                 contractClassId: contractClassId,
                 version: 1 as const,
@@ -120,22 +136,19 @@ export class RPSService {
             };
 
             // Register with the wallet instead of PXE directly
-            await currentWallet.registerContract({
+            await currentWallet!.registerContract({
                 artifact: TokenContractArtifact,
                 instance
             });
 
             // Create contract interface
-            this.tokenContract = await TokenContract.at(tokenContractAddress, currentWallet);
-
-
+            this.tokenContract = await TokenContract.at(this.tokenContractAddress, currentWallet!);
 
             console.log('RPS Contract initialized at:', this.contract.address.toString());
         } catch (error) {
             console.error('Error initializing RPS contract:', error);
             throw error;
         }
-
     }
 
     async assignContract(){
@@ -149,7 +162,18 @@ export class RPSService {
             return 0;
 
         }else{
-            this.contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet);
+
+            if(this.tokenContractInitialized){
+                this.tokenContract = await TokenContract.at(this.tokenContractAddress, currentWallet!);
+            }else{
+                await this.initializeTokenContract(this.accountService);
+            }
+
+            if(this.contractInitialized){
+                this.contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet!);
+            }else{
+                await this.initializeContract(this.accountService);
+            }
         }
 
         return 1;
