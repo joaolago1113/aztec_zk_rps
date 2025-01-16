@@ -61,10 +61,10 @@ contract RockPaperScissors {
         Token::at(token_address)
             .transfer_in_private(context.msg_sender(), context.this_address(), bet_amount, nonce)
             .call(&mut context);
-        // Get the current length of games
 
-        let mut games_length = storage.games_length.get_note().note.value;
-        let game_id = games_length +1;
+        // Get the current length of games
+        let games_length = storage.games_length.get_note().note.value;
+        let game_id = games_length + Field::from(1);
         
         // Create game note with ID
         let mut game_note = GameNote::new(
@@ -73,10 +73,15 @@ contract RockPaperScissors {
             context.msg_sender(), 
             bet_amount
         );
+
+       // Set the note header
         
+        // Insert the note into storage
         storage.games.insert(&mut game_note);
 
-        storage.games_length.replace(&mut ValueNote::new(game_id, context.msg_sender()));
+        // Update games length
+        let mut new_length_note = ValueNote::new(game_id, context.msg_sender());
+        storage.games_length.replace(&mut new_length_note);
     }
 
     #[private]

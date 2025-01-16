@@ -146,7 +146,7 @@ Before you can use the Rock Paper Scissors game, you need to deploy both a token
    Before deploying contracts, you need a wallet. Create one using:
 
    ```bash
-   aztec-cli create-private-wallet
+  aztec-wallet create-account -a my-wallet
    ```
 
    This will create a new wallet and store it as `my-wallet`.
@@ -205,3 +205,9 @@ Now your contracts are deployed and the app is ready to use! You can start the d
 ## Project Structure
 
 ## License
+
+3
+
+
+
+Have to obviosuly send tokens to the address before starting a game.

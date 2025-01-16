@@ -3,11 +3,14 @@ import { RockPaperScissorsContract } from '../contracts/src/artifacts/RockPaperS
 import { AccountService } from './AccountService.js';
 import { PublicKeys, getContractClassFromArtifact } from '@aztec/circuits.js';
 import { CONFIG } from '../config.js';
+import { TokenContract, TokenContractArtifact } from '@aztec/noir-contracts.js/Token';
 
 export class RPSService {
     private contract!: RockPaperScissorsContract;
+    private tokenContract!: TokenContract;
     private contractAddress!: AztecAddress;
     private accountService!: AccountService;
+    private tokenContractAddress!: AztecAddress;
     private pxe!: PXE;
 
     constructor(pxe: PXE) {
@@ -22,6 +25,14 @@ export class RPSService {
      * @param address - (Optional) The address of an existing RPS contract to load
      */
     async initialize(accountService: AccountService) {
+
+        const contractAddress = AztecAddress.fromString(CONFIG.RPS_CONTRACT.ADDRESS);
+        const tokenContractAddress = AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.ADDRESS);
+
+        this.tokenContractAddress = tokenContractAddress;
+        this.contractAddress = contractAddress;
+        this.accountService = accountService;
+        
         const currentWallet = await accountService.getCurrentWallet();
 
         if (!currentWallet) {
@@ -30,7 +41,6 @@ export class RPSService {
         }
 
         try {
-            const contractAddress = AztecAddress.fromString(CONFIG.RPS_CONTRACT.ADDRESS);
 
             if (!(await this.pxe.isContractPubliclyDeployed(contractAddress))) {
                 throw new Error('Contract not deployed at the specified address');
@@ -56,7 +66,7 @@ export class RPSService {
                 salt: Fr.fromString(CONFIG.RPS_CONTRACT.DEPLOYMENT_SALT),
                 deployer: AztecAddress.fromString(CONFIG.RPS_CONTRACT.DEPLOYER),
                 publicKeys: PublicKeys.default(),
-                constructorArgs: [AztecAddress.fromString(CONFIG.RPS_CONTRACT.TOKEN_ADDRESS)]
+                constructorArgs: [AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.ADDRESS)]
             };
 
             // Register with the wallet instead of PXE directly
@@ -67,14 +77,65 @@ export class RPSService {
 
             // Create contract interface
             this.contract = await RockPaperScissorsContract.at(contractAddress, currentWallet);
-            this.contractAddress = contractAddress;
-            this.accountService = accountService;
+
+
 
             console.log('RPS Contract initialized at:', this.contract.address.toString());
         } catch (error) {
             console.error('Error initializing RPS contract:', error);
             throw error;
         }
+
+
+        try {
+
+            if (!(await this.pxe.isContractPubliclyDeployed(tokenContractAddress))) {
+                throw new Error('Contract not deployed at the specified address');
+            }
+
+            // Register the contract class
+            await this.pxe.registerContractClass(TokenContractArtifact);
+
+            // Get constructor artifact
+            const constructorArtifact = TokenContractArtifact.functions.find(f => f.name === 'constructor');
+            if (!constructorArtifact) {
+                throw new Error('Constructor not found in contract artifact');
+            }
+
+            const contractClass = getContractClassFromArtifact(TokenContractArtifact);
+            const contractClassId = contractClass.id;
+            // Create instance using the deployment parameters
+            const instance = {
+                address: tokenContractAddress,
+                initializationHash: Fr.fromString(CONFIG.TOKEN_CONTRACT.INIT_HASH),
+                contractClassId: contractClassId,
+                version: 1 as const,
+                salt: Fr.fromString(CONFIG.TOKEN_CONTRACT.DEPLOYMENT_SALT),
+                deployer: AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.DEPLOYER),
+                publicKeys: PublicKeys.default(),
+                constructorArgs: [AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.DEPLOYER), 
+                    (CONFIG.TOKEN_CONTRACT.NAME), 
+                    (CONFIG.TOKEN_CONTRACT.SYMBOL), 
+                    (CONFIG.TOKEN_CONTRACT.DECIMALS)]
+            };
+
+            // Register with the wallet instead of PXE directly
+            await currentWallet.registerContract({
+                artifact: TokenContractArtifact,
+                instance
+            });
+
+            // Create contract interface
+            this.tokenContract = await TokenContract.at(tokenContractAddress, currentWallet);
+
+
+
+            console.log('RPS Contract initialized at:', this.contract.address.toString());
+        } catch (error) {
+            console.error('Error initializing RPS contract:', error);
+            throw error;
+        }
+
     }
 
     async assignContract(){
@@ -100,29 +161,46 @@ export class RPSService {
      * @param betAmount - Amount to bet
      * @returns The game ID
      */
-    async startGame(playerMove: number, betAmount: string): Promise<Fr> {
-
-        if ((await this.assignContract()) == 0){
+    async startGame(playerMove: number, betAmount: string): Promise<number> {
+        if ((await this.assignContract()) == 0) {
             console.log('No wallet available. Please create an account first.');
-            return Fr.fromString("0");
+            return 0;
         }
 
         try {
-            const betAmountFr = Fr.fromString(betAmount);
-            const nonce = Fr.random(); // Generate random nonce for the transaction
-            
+            const currentWallet = await this.accountService.getCurrentWallet();
+            if (!currentWallet) {
+                throw new Error('No wallet available');
+            }
+
+            // Create the transfer action
+            const transferAction = this.tokenContract.methods.transfer_in_private(
+                currentWallet.getAddress(),  // from
+                this.contractAddress,        // to 
+                BigInt(betAmount),                   // amount
+                Fr.ZERO                      // nonce
+            );
+
+            // Create and add the auth witness
+            const witness = await currentWallet.createAuthWit({
+                caller: this.contractAddress,
+                action: transferAction
+            });
+            //await currentWallet.addAuthWitness(witness);
+            await this.contract.wallet.addAuthWitness(witness);
+
+            // Now make the actual game move
+            const nonce = Fr.random();
             const tx = await this.contract.methods.start_game(
                 playerMove,
-                betAmountFr,
+                BigInt(betAmount),
                 nonce
             ).send();
             
-            const receipt = await tx.wait();
-            console.log('Game started with receipt:', receipt);
-            
-            // Get game ID from transaction receipt or event
-            const gameId = Fr.fromString("1"); // TODO: Get actual game ID
-            return gameId;
+            await tx.wait();
+            console.log('Game started successfully');
+            return 1;
+
         } catch (error: any) {
             console.error('Error starting game:', error);
             throw error;

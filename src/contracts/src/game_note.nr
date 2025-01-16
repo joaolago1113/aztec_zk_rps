@@ -22,12 +22,6 @@ pub struct GameNote {
     is_completed: bool,
 }
 
-impl Eq for GameNote {
-    fn eq(self, other: Self) -> bool {
-        self.id == other.id  // Only compare IDs since they're unique
-    }
-}
-
 impl GameNote {
     pub fn new(id: Field, player1_move: Field, player1_address: AztecAddress, bet_amount: Field) -> Self {
         GameNote {
@@ -71,5 +65,11 @@ impl Serialize<5> for GameNote {
             self.player1_address.to_field(),
             self.is_completed as Field
         ]
+    }
+}
+
+impl Eq for GameNote {
+    fn eq(self, other: Self) -> bool {
+        self.id == other.id
     }
 } 

@@ -167,7 +167,7 @@ export class AccountService {
 
   async retrieveContractAddress(index?: number): Promise<CompleteAddress | null> {
     const accounts = await this.keystore.getAccounts();
-
+ 
     if (this.currentAccountIndex === null) {
       return Promise.resolve(null);
     }
@@ -176,7 +176,7 @@ export class AccountService {
 
     const contractAddress = accounts[this.currentAccountIndex];
 
-    const registeredAccount: CompleteAddress | undefined = await this.pxe.getRegisteredAccounts().then(accounts => accounts.find(account => account.address === contractAddress));
+    const registeredAccount: CompleteAddress | undefined = await this.pxe.getRegisteredAccounts().then(accounts => accounts.find(account => account.address.toString() === contractAddress.toString()));
 
     if (!registeredAccount) {
       return Promise.resolve(null);
