@@ -144,7 +144,7 @@ export class RPSService {
             // Create contract interface
             this.tokenContract = await TokenContract.at(this.tokenContractAddress, currentWallet!);
 
-            console.log('RPS Contract initialized at:', this.contract.address.toString());
+            console.log('Token Contract initialized at:', this.tokenContract.address.toString());
         } catch (error) {
             console.error('Error initializing RPS contract:', error);
             throw error;

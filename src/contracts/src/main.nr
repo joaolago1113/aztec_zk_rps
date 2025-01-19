@@ -36,15 +36,12 @@ contract RockPaperScissors {
     #[private]
     #[initializer]
     fn constructor(token_addr: AztecAddress) {
-        
         // Initialize token address with the provided address
-        let mut token_note = ValueNote::new(token_addr.to_field(), context.msg_sender());
+        let mut token_note = ValueNote::new(token_addr.to_field(), context.this_address());
         storage.token_address.initialize(&mut token_note);
 
-
-        let mut games_length_note = ValueNote::new(Field::from(0), context.msg_sender());
+        let mut games_length_note = ValueNote::new(Field::from(0), context.this_address());
         storage.games_length.initialize(&mut games_length_note);
-
     }
 
     #[private]
@@ -54,11 +51,10 @@ contract RockPaperScissors {
         nonce: Field
     ) {
         assert(player1_move as u8 <= 2, "Invalid move!");
-        
+
         // Get token address from storage and verify it exists
         let token_note = storage.token_address.get_note();
-        assert(token_note.value != Field::from(0), "Token address not initialized");
-        
+
         let token_address = AztecAddress { inner: token_note.value };
 
         // Try to transfer tokens first
@@ -68,6 +64,7 @@ contract RockPaperScissors {
 
         // Get current games length
         let games_length = storage.games_length.get_note().note.value;
+
         let game_id = games_length + Field::from(1);
         
         // Create and insert game note
@@ -82,7 +79,9 @@ contract RockPaperScissors {
 
         // Update games length
         let mut new_length_note = ValueNote::new(game_id, context.msg_sender());
-        storage.games_length.replace(&mut new_length_note);
+
+        storage.games_length.replace(&mut new_length_note); 
+
     }
 
     #[private]
@@ -167,3 +166,4 @@ contract RockPaperScissors {
 
 
 }
+
