@@ -34,7 +34,7 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json' assert { type: 'json' };
+import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json';
 export const RockPaperScissorsContractArtifact = loadContractArtifact(RockPaperScissorsContractArtifactJson as NoirCompiledContract);
 
 
@@ -70,14 +70,14 @@ export class RockPaperScissorsContract extends ContractBase {
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, token_addr: AztecAddressLike) {
+  public static deploy(wallet: Wallet, ) {
     return new DeployMethod<RockPaperScissorsContract>(PublicKeys.default(), wallet, RockPaperScissorsContractArtifact, RockPaperScissorsContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, token_addr: AztecAddressLike) {
+  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, ) {
     return new DeployMethod<RockPaperScissorsContract>(publicKeys, wallet, RockPaperScissorsContractArtifact, RockPaperScissorsContract.at, Array.from(arguments).slice(2));
   }
 
@@ -150,8 +150,11 @@ ValueNote: {
     /** play_game(game_id: field, player2_move: field, bet_match: field) */
     play_game: ((game_id: FieldLike, player2_move: FieldLike, bet_match: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** start_game(player1_move: field, bet_amount: field, nonce: field) */
-    start_game: ((player1_move: FieldLike, bet_amount: FieldLike, nonce: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** public_dispatch(selector: field) */
+    public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** start_game(game_id: field, player1_move: field, bet_amount: field, nonce: field) */
+    start_game: ((game_id: FieldLike, player1_move: FieldLike, bet_amount: FieldLike, nonce: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** sync_notes() */
     sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

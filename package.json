@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "prebuild": "bash scripts/build.sh",
-    "dev": "bash scripts/build.sh && vite",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf node_modules dist src/target src/contracts/target"

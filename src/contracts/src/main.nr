@@ -10,9 +10,9 @@ contract RockPaperScissors {
         note::{note_getter_options::NoteGetterOptions},
         protocol_types::public_keys::OvpkM,
         keys::getters::get_public_keys,
-        prelude::{AztecAddress, PrivateMutable, Map, PrivateSet, PrivateImmutable, NoteInterface, NoteHeader, Point},
+        prelude::{PublicImmutable, AztecAddress, PrivateMutable, Map, PrivateSet, PrivateImmutable, PublicMutable, NoteHeader, Point},
         encrypted_logs::encrypted_note_emission::encode_and_encrypt_note,
-        macros::{storage::storage, functions::{private, public, initializer}}
+        macros::{storage::storage, storage::storage_no_init, functions::{private, public, initializer, internal}}
     };
     use dep::aztec::{note::note_getter_options::SortOrder, utils::comparison::Comparator};
     use dep::token::Token;
@@ -25,27 +25,24 @@ contract RockPaperScissors {
         /// Map of game ID to game notes
         games: PrivateSet<GameNote, Context>,
         /// The L2 token used for bets
-        token_address: PrivateImmutable<ValueNote, Context>,
+        token_address: PublicImmutable<AztecAddress, Context>,
 
-        games_length: PrivateMutable<ValueNote, Context>,
+        games_length: PublicMutable<Field, Context>,
     }
+
 
     // ---------------------------------------------------------------------
     // 1. Contract Constructor
     // ---------------------------------------------------------------------
-    #[private]
-    #[initializer]
+    #[public]
     fn constructor(token_addr: AztecAddress) {
-        // Initialize token address with the provided address
-        let mut token_note = ValueNote::new(token_addr.to_field(), context.this_address());
-        storage.token_address.initialize(&mut token_note);
-
-        let mut games_length_note = ValueNote::new(Field::from(0), context.this_address());
-        storage.games_length.initialize(&mut games_length_note);
+        storage.token_address.initialize(token_addr);
+        storage.games_length.write(Field::from(0));
     }
 
     #[private]
     fn start_game(
+        game_id: Field,
         player1_move: Field,
         bet_amount: Field,
         nonce: Field
@@ -53,20 +50,13 @@ contract RockPaperScissors {
         assert(player1_move as u8 <= 2, "Invalid move!");
 
         // Get token address from storage and verify it exists
-        let token_note = storage.token_address.get_note();
-
-        let token_address = AztecAddress { inner: token_note.value };
+        let token_address = storage.token_address.read();
 
         // Try to transfer tokens first
         Token::at(token_address)
             .transfer_in_private(context.msg_sender(), context.this_address(), bet_amount, nonce)
             .call(&mut context);
 
-        // Get current games length
-        let games_length = storage.games_length.get_note().note.value;
-
-        let game_id = games_length + Field::from(1);
-        
         // Create and insert game note
         let mut game_note = GameNote::new(
             game_id,
@@ -77,11 +67,16 @@ contract RockPaperScissors {
 
         storage.games.insert(&mut game_note);
 
-        // Update games length
-        let mut new_length_note = ValueNote::new(game_id, context.msg_sender());
+        RockPaperScissors::at(context.this_address())
+            ._increment_games_length()
+            .enqueue(&mut context);
+    }
 
-        storage.games_length.replace(&mut new_length_note); 
-
+    #[public]
+    #[internal]
+    fn _increment_games_length() {
+        let current_length = storage.games_length.read();
+        storage.games_length.write(current_length + Field::from(1));
     }
 
     #[private]
@@ -106,8 +101,7 @@ contract RockPaperScissors {
         assert(!game_note.is_completed, "Game already completed");
         assert(bet_match == game_note.bet_amount, "Bet mismatch!");
 
-        let stored_token_addr = storage.token_address.get_note().value;
-        let token_addr = AztecAddress { inner: stored_token_addr };
+        let token_addr = storage.token_address.read();
 
         Token::at(token_addr)
             .transfer_in_private(context.msg_sender(), context.this_address(), bet_match, Field::from(0))

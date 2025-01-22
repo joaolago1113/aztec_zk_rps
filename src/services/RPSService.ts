@@ -216,6 +216,7 @@ export class RPSService {
             // Now make the actual game move
             const nonce = Fr.random();
             const tx = await this.contract.methods.start_game(
+                Fr.fromString("1"), // TODO: Get actual game_id
                 playerMove,
                 BigInt(betAmount),
                 nonce
