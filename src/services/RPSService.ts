@@ -180,10 +180,15 @@ export class RPSService {
     }
 
     /**
-     * Start a new game
+     * Start a new game by committing player 1's move privately
      * @param playerMove - Player's move (0=Rock, 1=Paper, 2=Scissors)
      * @param betAmount - Amount to bet
-     * @returns The game ID
+     * @returns 1 if successful, 0 if failed
+     * 
+     * Flow:
+     * 1. Player 1 transfers their bet to the contract
+     * 2. Their move is stored privately (not visible to player 2)
+     * 3. A public game note is created for player 2 to join
      */
     async startGame(playerMove: number, betAmount: string): Promise<number> {
         if ((await this.assignContract()) == 0) {
@@ -198,11 +203,11 @@ export class RPSService {
             }
 
             // Create the transfer action
-            const transferAction = this.tokenContract.methods.transfer_in_private(
+            const transferAction = this.tokenContract.methods.transfer_in_public(
                 currentWallet.getAddress(),  // from
                 this.contractAddress,        // to 
-                BigInt(betAmount),                   // amount
-                Fr.ZERO                      // nonce
+                BigInt(betAmount),          // amount
+                Fr.random()                 // Use random nonce for transfer
             );
 
             // Create and add the auth witness
@@ -210,16 +215,12 @@ export class RPSService {
                 caller: this.contractAddress,
                 action: transferAction
             });
-            //await currentWallet.addAuthWitness(witness);
             await this.contract.wallet.addAuthWitness(witness);
 
-            // Now make the actual game move
-            const nonce = Fr.random();
+            // Make the game move
             const tx = await this.contract.methods.start_game(
-                Fr.fromString("1"), // TODO: Get actual game_id
                 playerMove,
-                BigInt(betAmount),
-                nonce
+                BigInt(betAmount)
             ).send();
             
             await tx.wait();
@@ -233,23 +234,45 @@ export class RPSService {
     }
 
     /**
-     * Join an existing game
+     * Join an existing game as player 2
      * @param gameId - ID of the game to join
      * @param playerMove - Your move (0=Rock, 1=Paper, 2=Scissors)
      * @returns 0 if no wallet available, 1 if game joined successfully
+     * 
+     * Flow:
+     * 1. Player 2 matches the bet amount
+     * 2. Their move is stored publicly in the game note
+     * 3. The game is ready for player 1 to resolve
      */
     async joinGame(gameId: string, playerMove: number): Promise<number> {
-
-        if ((await this.assignContract()) == 0){
+        if ((await this.assignContract()) == 0) {
             console.log('No wallet available. Please create an account first.');
             return 0;
         }
 
         try {
             const gameIdFr = Fr.fromString(gameId);
-            const betMatch = Fr.fromString("1"); // TODO: Get actual bet amount from game
-            const nonce = Fr.random(); // Generate random nonce for the transaction
             
+            // Get game details to match bet amount
+            const gameNote = await this.contract.methods.get_game_by_id(gameIdFr).simulate();
+            const betMatch = gameNote.bet_amount;
+
+            // Create transfer action for matching bet
+            const transferAction = this.tokenContract.methods.transfer_in_public(
+                this.contract.wallet.getAddress(),  // from
+                this.contractAddress,               // to 
+                betMatch,                          // amount
+                Fr.random()                        // Use random nonce
+            );
+
+            // Create and add auth witness
+            const witness = await this.contract.wallet.createAuthWit({
+                caller: this.contractAddress,
+                action: transferAction
+            });
+            await this.contract.wallet.addAuthWitness(witness);
+            
+            // Join the game
             const tx = await this.contract.methods.play_game(
                 gameIdFr,
                 playerMove,
@@ -258,28 +281,60 @@ export class RPSService {
             
             await tx.wait();
             console.log(`Joined game ${gameId}`);
+            return 1;
+
         } catch (error: any) {
             console.error('Error joining game:', error);
             throw error;
         }
-        return 1;
     }
 
     /**
-     * Get game details
+     * Resolve the game by revealing player 1's move and distributing rewards
+     * @param gameId - ID of the game to resolve
+     * @returns 1 if successful, 0 if failed
+     * 
+     * Flow:
+     * 1. Player 1 reveals their original move
+     * 2. The contract compares moves and determines winner
+     * 3. The total pot is distributed to the winner (or split if draw)
+     */
+    async resolveGame(gameId: string): Promise<number> {
+        if ((await this.assignContract()) == 0) {
+            console.log('No wallet available. Please create an account first.');
+            return 0;
+        }
+
+        try {
+            const gameIdFr = Fr.fromString(gameId);
+            
+            const tx = await this.contract.methods.resolve_game(gameIdFr).send();
+            await tx.wait();
+            
+            console.log(`Game ${gameId} resolved successfully`);
+            return 1;
+
+        } catch (error: any) {
+            console.error('Error resolving game:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get game details including bet amount, completion status, and player 2's move
+     * Note: Player 1's move remains private until the game is resolved
      * @param gameId - ID of the game
-     * @returns Game details including moves, players, and status
+     * @returns Game details including moves, completion status, and timing
      */
     async getGameDetails(gameId: string) {
         try {
-            // TODO: Implement game details retrieval
-            // This will depend on your contract's storage and getter methods
+            const gameNote = await this.contract.methods.get_game_by_id(Fr.fromString(gameId)).simulate();
             return {
                 id: gameId,
-                status: 'pending',
-                player1Move: null,
-                player2Move: null,
-                betAmount: '0'
+                betAmount: gameNote.bet_amount.toString(),
+                isCompleted: gameNote.is_completed,
+                player2Move: gameNote.player2_move.toString(),
+                blocktime: gameNote.blocktime.toString()
             };
         } catch (error: any) {
             console.error('Error getting game details:', error);

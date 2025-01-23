@@ -34,7 +34,7 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json';
+import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json' assert { type: 'json' };
 export const RockPaperScissorsContractArtifact = loadContractArtifact(RockPaperScissorsContractArtifactJson as NoirCompiledContract);
 
 
@@ -108,33 +108,33 @@ export class RockPaperScissorsContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'games' | 'token_address' | 'games_length'> {
+  public static get storage(): ContractStorageLayout<'token_address' | 'games_length' | 'plays' | 'games'> {
       return {
-        games: {
+        token_address: {
       slot: new Fr(1n),
     },
-token_address: {
+games_length: {
       slot: new Fr(2n),
     },
-games_length: {
+plays: {
       slot: new Fr(3n),
+    },
+games: {
+      slot: new Fr(4n),
     }
-      } as ContractStorageLayout<'games' | 'token_address' | 'games_length'>;
+      } as ContractStorageLayout<'token_address' | 'games_length' | 'plays' | 'games'>;
     }
     
 
-  public static get notes(): ContractNotes<'UintNote' | 'GameNote' | 'ValueNote'> {
+  public static get notes(): ContractNotes<'UintNote' | 'ValueNote'> {
     return {
       UintNote: {
           id: new NoteSelector(202136239),
         },
-GameNote: {
-          id: new NoteSelector(4012853617),
-        },
 ValueNote: {
           id: new NoteSelector(1038582377),
         }
-    } as ContractNotes<'UintNote' | 'GameNote' | 'ValueNote'>;
+    } as ContractNotes<'UintNote' | 'ValueNote'>;
   }
   
 
@@ -147,17 +147,26 @@ ValueNote: {
     /** constructor(token_addr: struct) */
     constructor: ((token_addr: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** get_game_by_id(game_id: field) */
+    get_game_by_id: ((game_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** play_game(game_id: field, player2_move: field, bet_match: field) */
     play_game: ((game_id: FieldLike, player2_move: FieldLike, bet_match: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** start_game(game_id: field, player1_move: field, bet_amount: field, nonce: field) */
-    start_game: ((game_id: FieldLike, player1_move: FieldLike, bet_amount: FieldLike, nonce: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** resolve_game(game_id: field) */
+    resolve_game: ((game_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** start_game(player1_move: field, bet_amount: field) */
+    start_game: ((player1_move: FieldLike, bet_amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** sync_notes() */
     sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** timeout_game(game_id: field) */
+    timeout_game: ((game_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   
