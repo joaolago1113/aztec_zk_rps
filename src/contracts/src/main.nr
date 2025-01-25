@@ -31,7 +31,6 @@ contract RockPaperScissors {
     struct Storage<Context> {
         /// The L2 token used for bets
         token_address: PublicImmutable<AztecAddress, Context>,
-
         games_length: PublicMutable<Field, Context>,
 
         plays: Map<Field, PrivateMutable<ValueNote, Context>, Context>,
@@ -55,7 +54,7 @@ contract RockPaperScissors {
 
         let game_id = random();
 
-        storage.plays.at(game_id).replace(&mut player_move_note).emit(encode_and_encrypt_note_unconstrained(
+        storage.plays.at(game_id).initialize(&mut player_move_note).emit(encode_and_encrypt_note_unconstrained(
             &mut context,
             context.msg_sender(),
             context.msg_sender(),
@@ -64,8 +63,7 @@ contract RockPaperScissors {
         // Create and insert game note
         let mut game_note = GameNote::new(
             game_id,
-            bet_amount,
-            context.msg_sender().to_field()
+            bet_amount
         );
 
         RockPaperScissors::at(context.this_address())
@@ -107,6 +105,7 @@ contract RockPaperScissors {
         let mut game_note = storage.games.at(game_id).read();
 
         game_note.player2_move = player2_move;
+        game_note.player2_address = context.msg_sender().to_field();
         game_note.blocktime = context.block_number();
 
         storage.games.at(game_id).write(game_note);
@@ -115,10 +114,8 @@ contract RockPaperScissors {
     }
 
     #[private]
-    fn resolve_game( game_id: Field ) {
-
-        let mut play = storage.plays.at(game_id).get_note();
-
+    fn resolve_game(game_id: Field) {
+        let play = storage.plays.at(game_id).get_note();
         let player1_move = play.note.value;
 
         RockPaperScissors::at(context.this_address())
@@ -128,19 +125,13 @@ contract RockPaperScissors {
 
     #[public]
     #[internal]
-    fn _resolve_game(
-        game_id: Field,
-        player1_move: Field
-    ) {
-
+    fn _resolve_game(game_id: Field, player1_move: Field) {
         let mut game_note = storage.games.at(game_id).read();
-
         assert(!game_note.is_completed, "Game already completed");
 
         // Get token address
         let token_addr = storage.token_address.read();
-
-        let player1_address = game_note.player1_address;
+        let player2_address = game_note.player2_address;
 
         // Compare moves and determine winner
         let p1 = player1_move;
@@ -159,10 +150,10 @@ contract RockPaperScissors {
             let p1_plus_one = ((p1 + Field::from(1)) as u32 % 3).to_field();
             if p1_plus_one == p2 {
                 // Player2 wins
-                winner = context.msg_sender(); 
+                winner = AztecAddress { inner: player2_address };
             } else {
                 // Player1 wins
-                winner = AztecAddress { inner: player1_address };
+                winner = context.msg_sender(); 
             }
         }
 
@@ -176,7 +167,7 @@ contract RockPaperScissors {
                 .call(&mut context);
 
             Token::at(token_addr)
-                .transfer_in_public(context.this_address(), context.msg_sender(), bet_amount, 0)
+                .transfer_in_public(context.this_address(), AztecAddress { inner: player2_address }, bet_amount, 0)
                 .call(&mut context);
         } else {
             // Send entire pot to winner

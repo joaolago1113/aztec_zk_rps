@@ -15,23 +15,23 @@ global GAME_NOTE_LEN: u32 = 6;
 
 pub struct GameNote {
     pub id: Field,
-    bet_amount: Field,
-    is_completed: bool,
     pub player2_move: Field,
     pub blocktime: Field,
-    player1_address: Field,
+    pub player2_address: Field,
+    bet_amount: Field,
+    is_completed: bool,
     header: NoteHeader,
 }
 
 impl GameNote {
-    pub fn new(id: Field, bet_amount: Field, player1_address: Field) -> Self {
+    pub fn new(id: Field, bet_amount: Field) -> Self {
         GameNote {
             id,
             bet_amount,
             is_completed: false,
             player2_move: 0,
             blocktime: 0,
-            player1_address,
+            player2_address: 0,
             header: NoteHeader::empty()
         }
     }
@@ -45,7 +45,7 @@ impl Serialize<GAME_NOTE_LEN> for GameNote {
             self.is_completed as Field,
             self.player2_move,
             self.blocktime,
-            self.player1_address
+            self.player2_address
         ]
     }
 }
@@ -64,7 +64,7 @@ impl Deserialize<GAME_NOTE_LEN> for GameNote {
             is_completed: fields[4] != 0,
             player2_move: fields[3],
             blocktime: fields[4],
-            player1_address: fields[5],
+            player2_address: fields[5],
             header: NoteHeader::empty()
         }
     }
