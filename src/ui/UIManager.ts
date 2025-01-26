@@ -1685,8 +1685,13 @@ export class UIManager {
 
         try {
           this.addRPSLog('Starting new game...');
-          const gameId = await this.rpsService.startGame(parseInt(selectedMove.dataset.move!), betAmount);
-          this.addRPSLog(`Game started with ${this.getMoveText(selectedMove.dataset.move!)} and bet ${betAmount}! Game ID: ${gameId}`);
+          const result = await this.rpsService.startGame(parseInt(selectedMove.dataset.move!), betAmount);
+          if (result === 0) {
+            this.addRPSLog('Failed to start game. Please check your wallet and try again.');
+            return;
+          }
+          
+          this.addRPSLog(`Game started with ${this.getMoveText(selectedMove.dataset.move!)} and bet ${betAmount}!`);
           
           // Clear selection and reset bet amount
           document.querySelectorAll('#startGameMoves .move-button').forEach(btn => 

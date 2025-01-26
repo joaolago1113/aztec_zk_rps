@@ -38,6 +38,7 @@ contract RockPaperScissors {
     }
 
     #[public]
+    #[initializer]
     fn constructor(token_addr: AztecAddress) {
         storage.token_address.initialize(token_addr);
         storage.games_length.write(Field::from(0));

@@ -34,7 +34,7 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json';
+import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json' assert { type: 'json' };
 export const RockPaperScissorsContractArtifact = loadContractArtifact(RockPaperScissorsContractArtifactJson as NoirCompiledContract);
 
 
@@ -70,14 +70,14 @@ export class RockPaperScissorsContract extends ContractBase {
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, ) {
+  public static deploy(wallet: Wallet, token_addr: AztecAddressLike) {
     return new DeployMethod<RockPaperScissorsContract>(PublicKeys.default(), wallet, RockPaperScissorsContractArtifact, RockPaperScissorsContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, ) {
+  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, token_addr: AztecAddressLike) {
     return new DeployMethod<RockPaperScissorsContract>(publicKeys, wallet, RockPaperScissorsContractArtifact, RockPaperScissorsContract.at, Array.from(arguments).slice(2));
   }
 
