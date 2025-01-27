@@ -195,35 +195,43 @@ export class RPSService {
             console.log('No wallet available. Please create an account first.');
             return 0;
         }
-
+        
         try {
             const currentWallet = await this.accountService.getCurrentWallet();
             if (!currentWallet) {
                 throw new Error('No wallet available');
             }
 
-            // Create the transfer action
+            const nonce = 0; 
+            
+            // First approve the transfer
             const transferAction = this.tokenContract.methods.transfer_in_public(
                 currentWallet.getAddress(),  // from
                 this.contractAddress,        // to 
                 BigInt(betAmount),          // amount
-                Fr.random()                 // Use random nonce for transfer
+                nonce                       // Use random nonce instead of 0
             );
 
-            // Create and add the auth witness
-            const witness = await currentWallet.createAuthWit({
-                caller: this.contractAddress,
-                action: transferAction
-            });
-            await this.contract.wallet.addAuthWitness(witness);
+            // Add authorization witness
+            await currentWallet.setPublicAuthWit(
+                {
+                    caller: this.contractAddress,
+                    action: transferAction
+                },
+                true
+            ).send().wait();
 
-            // Make the game move
-            const tx = await this.contract.methods.start_game(
+            const game_id = Fr.random();
+
+            // Now call start_game
+            const tx = this.contract.methods.start_game(
+                game_id,
                 playerMove,
                 BigInt(betAmount)
-            ).send();
-            
-            await tx.wait();
+            );
+
+            (await tx.send()).wait();
+
             console.log('Game started successfully');
             return 1;
 
@@ -340,5 +348,70 @@ export class RPSService {
             console.error('Error getting game details:', error);
             throw error;
         }
+    }
+
+    async getPublicBalance(): Promise<string> {
+        if ((await this.assignContract()) == 0) {
+            return '0';
+        }
+
+        try {
+            const currentWallet = await this.accountService.getCurrentWallet();
+            if (!currentWallet) {
+                throw new Error('No wallet available');
+            }
+
+            const balance = await this.tokenContract.methods.balance_of_public(
+                currentWallet.getAddress()
+            ).simulate();
+                
+            console.log('Current Wallet:', currentWallet.getAddress().toString());
+            console.log('Balance:', balance);
+
+            // Convert from base units (1e9) to display units
+            return (Number(balance) / 1e9).toString();
+        } catch (error) {
+            console.error('Error getting balance:', error);
+            return '0';
+        }
+    }
+
+    async getGamesCount(): Promise<number> {
+        try {
+            const gamesLength = await this.contract.methods.get_games_length().simulate();
+            return Number(gamesLength);
+        } catch (error) {
+            console.error('Error getting games count:', error);
+            return 0;
+        }
+    }
+
+    async getAllGames() {
+        const games = [];
+        const count = await this.getGamesCount();
+        
+        for(let i = 0; i < count; i++) {
+            try {
+                // Get game ID for this index
+                const gameId = await this.contract.methods.get_game_id_by_index(i).simulate();
+                
+                // Get game details
+                const gameNote = await this.contract.methods.get_game_by_id(gameId).simulate();
+
+                console.log(gameNote);
+                
+                games.push({
+                    id: gameId.toString(),
+                    betAmount: gameNote.bet_amount.toString(),
+                    isCompleted: gameNote.is_completed,
+                    player2Move: gameNote.player2_move.toString(),
+                    blocktime: gameNote.blocktime.toString()
+                });
+            } catch (error) {
+                console.error(`Error getting game at index ${i}:`, error);
+            }
+        }
+        
+        return games;
     }
 }

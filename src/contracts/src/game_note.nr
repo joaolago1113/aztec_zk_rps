@@ -1,26 +1,14 @@
-use dep::aztec::{
-    keys::getters::{get_nsk_app, get_public_keys},
-    macros::notes::note,
-    note::utils::compute_note_hash_for_nullify,
-    protocol_types::{
-        address::AztecAddress,
-        constants::GENERATOR_INDEX__NOTE_NULLIFIER,
-        hash::poseidon2_hash_with_separator,
-        traits::{Serialize, Deserialize}
-    },
-};
-use dep::aztec::prelude::{NoteHeader, NullifiableNote, PrivateContext};
+use dep::aztec::protocol_types::traits::{Deserialize, Serialize};
 
 global GAME_NOTE_LEN: u32 = 6;
 
 pub struct GameNote {
     pub id: Field,
-    pub player2_move: Field,
+    pub bet_amount: Field,
+    pub is_completed: bool,
     pub blocktime: Field,
     pub player2_address: Field,
-    bet_amount: Field,
-    is_completed: bool,
-    header: NoteHeader,
+    pub player2_move: Field,
 }
 
 impl GameNote {
@@ -29,10 +17,9 @@ impl GameNote {
             id,
             bet_amount,
             is_completed: false,
-            player2_move: 0,
             blocktime: 0,
             player2_address: 0,
-            header: NoteHeader::empty()
+            player2_move: 0
         }
     }
 }
@@ -43,9 +30,9 @@ impl Serialize<GAME_NOTE_LEN> for GameNote {
             self.id,
             self.bet_amount,
             self.is_completed as Field,
-            self.player2_move,
             self.blocktime,
-            self.player2_address
+            self.player2_address,
+            self.player2_move
         ]
     }
 }
@@ -61,11 +48,10 @@ impl Deserialize<GAME_NOTE_LEN> for GameNote {
         GameNote {
             id: fields[0],
             bet_amount: fields[1],
-            is_completed: fields[4] != 0,
-            player2_move: fields[3],
-            blocktime: fields[4],
-            player2_address: fields[5],
-            header: NoteHeader::empty()
+            is_completed: fields[2] != 0,
+            blocktime: fields[3],
+            player2_address: fields[4],
+            player2_move: fields[5]
         }
     }
 }

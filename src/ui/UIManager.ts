@@ -1,3 +1,10 @@
+// Add this at the top of the file, before the class definition
+declare global {
+  interface Window {
+    resolveGame: (gameId: string) => Promise<void>;
+  }
+}
+
 import { RPSService } from '../services/RPSService.js';
 import { AccountService } from '../services/AccountService.js';
 import { TokenService } from '../services/TokenService.js';
@@ -1692,7 +1699,7 @@ export class UIManager {
           }
           
           this.addRPSLog(`Game started with ${this.getMoveText(selectedMove.dataset.move!)} and bet ${betAmount}!`);
-          
+          await this.updateGamesList();
           // Clear selection and reset bet amount
           document.querySelectorAll('#startGameMoves .move-button').forEach(btn => 
             btn.classList.remove('selected')
@@ -1736,6 +1743,12 @@ export class UIManager {
         }
       });
     }
+
+    // Add balance update
+    await this.updateRPSBalance();
+    
+    // Add games list update
+    await this.updateGamesList();
   }
 
   private addRPSLog(message: string) {
@@ -1761,6 +1774,53 @@ export class UIManager {
       case '1': return '✋ Paper';
       case '2': return '✌️ Scissors';
       default: return 'Unknown';
+    }
+  }
+
+  private async updateRPSBalance() {
+    const balanceSpan = document.getElementById('tokenBalance');
+    if (balanceSpan) {
+      const balance = await this.rpsService.getPublicBalance();
+      balanceSpan.textContent = balance;
+    }
+  }
+
+  private async updateGamesList() {
+    const gamesTableBody = document.getElementById('gamesTableBody');
+    if (!gamesTableBody) return;
+
+    try {
+        const games = await this.rpsService.getAllGames();
+        
+        gamesTableBody.innerHTML = games.map(game => `
+            <tr>
+                <td>${game.id}</td>
+                <td>${game.betAmount} TOKEN</td>
+                <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
+                <td>${this.getMoveText(game.player2Move)}</td>
+                <td>
+                    ${!game.isCompleted ? `
+                        <button class="button small-button" onclick="window.resolveGame('${game.id}')">
+                            Resolve
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `).join('');
+
+        // Add global handler for resolve button
+        window.resolveGame = async (gameId: string) => {
+            try {
+                await this.rpsService.resolveGame(gameId);
+                this.addRPSLog(`Successfully resolved game ${gameId}!`);
+                await this.updateGamesList(); // Refresh the list
+            } catch (err: any) {
+                this.addRPSLog(`Error resolving game: ${err?.message || err}`);
+            }
+        };
+
+    } catch (error) {
+        console.error('Error updating games list:', error);
     }
   }
 }

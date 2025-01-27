@@ -13,6 +13,9 @@
         <div class="card-header">
           <h3 class="card-title">Rock Paper Scissors</h3>
           <p class="card-description">Challenge your friends to a game of Rock Paper Scissors on the blockchain!</p>
+          <div class="balance-display">
+            Available Balance: <span id="tokenBalance">Loading...</span> TOKEN
+          </div>
         </div>
         
         <div class="card-content">
@@ -102,6 +105,27 @@
             <h4>Game History</h4>
             <div id="logs" class="logs-container">
               <div class="log-entry">Welcome to Rock Paper Scissors! Choose your move to begin.</div>
+            </div>
+          </div>
+
+          <!-- Add this after the game-grid div -->
+          <div class="game-list">
+            <h4>Active Games</h4>
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Game ID</th>
+                    <th>Bet Amount</th>
+                    <th>Status</th>
+                    <th>Player 2 Move</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="gamesTableBody">
+                  <!-- Games will be added here dynamically -->
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

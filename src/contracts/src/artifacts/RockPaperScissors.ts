@@ -108,7 +108,7 @@ export class RockPaperScissorsContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'token_address' | 'games_length' | 'plays' | 'games'> {
+  public static get storage(): ContractStorageLayout<'token_address' | 'games_length' | 'plays' | 'games' | 'game_ids'> {
       return {
         token_address: {
       slot: new Fr(1n),
@@ -121,8 +121,11 @@ plays: {
     },
 games: {
       slot: new Fr(4n),
+    },
+game_ids: {
+      slot: new Fr(5n),
     }
-      } as ContractStorageLayout<'token_address' | 'games_length' | 'plays' | 'games'>;
+      } as ContractStorageLayout<'token_address' | 'games_length' | 'plays' | 'games' | 'game_ids'>;
     }
     
 
@@ -150,6 +153,12 @@ ValueNote: {
     /** get_game_by_id(game_id: field) */
     get_game_by_id: ((game_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** get_game_id_by_index(index: field) */
+    get_game_id_by_index: ((index: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** get_games_length() */
+    get_games_length: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** play_game(game_id: field, player2_move: field, bet_match: field) */
     play_game: ((game_id: FieldLike, player2_move: FieldLike, bet_match: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -159,8 +168,8 @@ ValueNote: {
     /** resolve_game(game_id: field) */
     resolve_game: ((game_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** start_game(player1_move: field, bet_amount: field) */
-    start_game: ((player1_move: FieldLike, bet_amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** start_game(game_id: field, player1_move: field, bet_amount: field) */
+    start_game: ((game_id: FieldLike, player1_move: FieldLike, bet_amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** sync_notes() */
     sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

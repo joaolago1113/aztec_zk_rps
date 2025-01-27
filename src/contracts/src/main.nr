@@ -34,26 +34,29 @@ contract RockPaperScissors {
         games_length: PublicMutable<Field, Context>,
 
         plays: Map<Field, PrivateMutable<ValueNote, Context>, Context>,
-        games: Map<Field, PublicMutable<GameNote, Context>, Context>
+        games: Map<Field, PublicMutable<GameNote, Context>, Context>,
+        game_ids: Map<Field, PublicImmutable<Field, Context>, Context>,
     }
 
     #[public]
     #[initializer]
     fn constructor(token_addr: AztecAddress) {
         storage.token_address.initialize(token_addr);
-        storage.games_length.write(Field::from(0));
+        storage.games_length.write( 0 );
     }
 
     #[private]
     fn start_game(
+        game_id: Field,
         player1_move: Field,
         bet_amount: Field
     ) {
         assert(player1_move as u8 <= 2, "Invalid move!");
 
-        let mut player_move_note = ValueNote::new(player1_move, context.msg_sender());
+        //check if game_id already exists
+        //assert(!storage.game_ids.at(game_id).is_some(), "Game already exists");
 
-        let game_id = random();
+        let mut player_move_note = ValueNote::new(player1_move, context.msg_sender());
 
         storage.plays.at(game_id).initialize(&mut player_move_note).emit(encode_and_encrypt_note_unconstrained(
             &mut context,
@@ -68,26 +71,26 @@ contract RockPaperScissors {
         );
 
         RockPaperScissors::at(context.this_address())
-            ._add_game(game_note)
+            ._add_game(context.msg_sender(), game_note)
             .enqueue(&mut context);
     }
 
     #[public]
     #[internal]
-    fn _add_game(game_note: GameNote) -> Field{
+    fn _add_game(sender: AztecAddress, game_note: GameNote){
 
         let current_length = storage.games_length.read();
         storage.games_length.write(current_length + 1);
+
+        storage.game_ids.at(current_length).initialize(game_note.id);
 
         storage.games.at(game_note.id).write(game_note);
 
         let token_address = storage.token_address.read();
 
         Token::at(token_address)
-            .transfer_in_public(context.msg_sender(), context.this_address(), game_note.bet_amount, 0)
+            .transfer_in_public(sender, context.this_address(), game_note.bet_amount, 0)
             .call(&mut context);
-
-        game_note.id
     }
 
     #[public]
@@ -214,9 +217,19 @@ contract RockPaperScissors {
 
     #[public]
     unconstrained fn get_game_by_id(game_id: Field) -> pub GameNote {
-        let game_note = storage.games.at(game_id).read();
-        game_note
+        storage.games.at(game_id).read()
     }
+
+    #[public]
+    unconstrained fn get_game_id_by_index(index: Field) -> pub Field {
+        storage.game_ids.at(index).read()
+    }
+
+    #[public]
+    unconstrained fn get_games_length() -> pub Field {
+        storage.games_length.read()
+    }
+
 
 }
 
