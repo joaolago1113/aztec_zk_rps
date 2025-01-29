@@ -520,17 +520,61 @@ footer nav a:hover {
 .table {
   width: 100%;
   border-collapse: collapse;
+  background: var(--card);
 }
 
-.table th,
-.table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
+.table thead {
+  background-color: var(--muted);
 }
 
 .table th {
   font-weight: 600;
+  color: var(--muted-foreground);
+  padding: 1rem 1.5rem;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+.table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  height: 72px;
+}
+
+.game-id-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 100%;
+}
+
+.truncated-id {
+  font-family: monospace;
+  flex: 1;
+}
+
+.copy-button {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-button {
+  min-width: 80px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border-radius: var(--radius);
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .balance-container {
@@ -676,7 +720,7 @@ footer nav a:hover {
   padding: 1rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
-  vertical-align: middle; /* Add this line */
+  vertical-align: middle;
 }
 
 .table th {
@@ -726,10 +770,10 @@ footer nav a:hover {
 .actions-cell {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap; /* Add this line */
-  justify-content: flex-start; /* Add this line */
-  align-items: center; /* Add this line */
-  height: 100%; /* Add this line */
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  height: 100%;
 }
 
 .action-button {
@@ -740,8 +784,8 @@ footer nav a:hover {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
-  white-space: nowrap; /* Add this line */
-  flex: 0 0 auto; /* Add this line */
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .send-button {
@@ -1192,8 +1236,8 @@ footer nav a:hover {
   position: absolute;
   top: 0;
   left: 0;
-  cursor: pointer; /* Ensure the cursor changes to pointer */
-  z-index: 2; /* Make sure it sits above the slider */
+  cursor: pointer;
+  z-index: 2;
 }
 
 .form-group.checkbox-group .checkbox-slider {
@@ -1491,7 +1535,7 @@ footer nav a:hover {
 
 .input-with-button .button {
   min-width: 120px;
-  height: 42px; /* Match input height */
+  height: 42px;
 }
 
 /* Adjust move options margin */
@@ -1510,12 +1554,20 @@ footer nav a:hover {
 }
 
 .balance-display {
-    background: var(--card);
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius);
-    display: inline-block;
-    margin-top: 1rem;
-    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.balance-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.balance-label {
+    color: var(--muted-foreground);
 }
 
 #tokenBalance {
@@ -1556,4 +1608,173 @@ footer nav a:hover {
 .table th {
     font-weight: 600;
     color: var(--muted-foreground);
+}
+
+.game-id-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.truncated-id {
+    font-family: monospace;
+}
+
+.copy-button {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-button:hover {
+    color: var(--foreground);
+    background: var(--muted);
+}
+
+.action-button {
+    min-width: 80px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: var(--radius);
+}
+
+.play-button {
+    background: var(--accent);
+    color: var(--accent-foreground);
+    border: none;
+}
+
+.play-button:hover {
+    background: color-mix(in srgb, var(--accent) 80%, black);
+}
+
+.resolve-button {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+}
+
+.resolve-button:hover {
+    background: color-mix(in srgb, var(--primary) 80%, black);
+}
+
+.loading-cell {
+    text-align: center;
+    padding: 2rem !important;
+    color: var(--muted-foreground);
+    background: var(--card);
+}
+
+.loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    height: 100px;
+}
+
+.loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--muted);
+    border-radius: 50%;
+    border-top-color: var(--accent);
+    animation: spin 1s linear infinite;
+}
+
+.loading-container span {
+    font-size: 1rem;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Make sure the loading cell takes full width */
+td.loading-cell {
+    width: 100%;
+    padding: 0 !important;
+}
+
+/* Error cell styling */
+.error-cell {
+    text-align: center;
+    padding: 2rem !important;
+    color: var(--destructive);
+    background: var(--card);
+}
+
+.loading-cell.subtle {
+    background: transparent;
+    color: var(--muted-foreground);
+    opacity: 0.8;
+    padding: 1rem !important;
+}
+
+.loading-spinner.small {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+}
+
+/* Improve table styling */
+.table {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table thead tr {
+    background: var(--muted);
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.table tr:hover {
+    background: color-mix(in srgb, var(--card) 95%, var(--muted));
+}
+
+/* Improve button styling */
+.action-button {
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    transition: all 0.2s ease;
+}
+
+.action-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Balance display improvements */
+.balance-display {
+    background: var(--card);
+    padding: 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+}
+
+.balance-row {
+    padding: 0.5rem;
+    border-radius: var(--radius);
+}
+
+.balance-row:hover {
+    background: var(--muted);
 }

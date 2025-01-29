@@ -14,7 +14,14 @@
           <h3 class="card-title">Rock Paper Scissors</h3>
           <p class="card-description">Challenge your friends to a game of Rock Paper Scissors on the blockchain!</p>
           <div class="balance-display">
-            Available Balance: <span id="tokenBalance">Loading...</span> TOKEN
+            <div class="balance-row">
+                <span class="balance-label">Your Balance:</span>
+                <span id="tokenBalance">Loading...</span> TOKEN
+            </div>
+            <div class="balance-row">
+                <span class="balance-label">Contract Balance:</span>
+                <span id="contractBalance">Loading...</span> TOKEN
+            </div>
           </div>
         </div>
         
@@ -60,7 +67,7 @@
             </div>
 
             <!-- Join Game Section -->
-            <div class="game-card">
+            <div class="game-card" id="joinGameSection">
               <h4>Join Existing Game</h4>
               <p class="card-description">Enter a game ID and choose your move:</p>
 

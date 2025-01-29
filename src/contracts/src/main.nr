@@ -98,7 +98,7 @@ contract RockPaperScissors {
         game_id: Field,
         player2_move: Field,
         bet_match: Field
-    ) -> Field {
+    ) {
         //assert(storage.plays.at(game_id).is_some(), "Game not found");  
         let token_addr = storage.token_address.read();
 
@@ -112,9 +112,7 @@ contract RockPaperScissors {
         game_note.player2_address = context.msg_sender().to_field();
         game_note.blocktime = context.block_number();
 
-        storage.games.at(game_id).write(game_note);
-
-        game_id
+        storage.games.at(game_id).write(game_note);   
     }
 
     #[private]
@@ -151,7 +149,7 @@ contract RockPaperScissors {
             is_draw = true;
         } else {
             // RPS logic: if (p1 + 1) mod 3 == p2 => p2 wins
-            let p1_plus_one = ((p1 + Field::from(1)) as u32 % 3).to_field();
+            let p1_plus_one = ((p1 + 1) as u32 % 3).to_field();
             if p1_plus_one == p2 {
                 // Player2 wins
                 winner = AztecAddress { inner: player2_address };
@@ -162,7 +160,7 @@ contract RockPaperScissors {
         }
 
         // Handle payouts
-        let pot = bet_amount * Field::from(2); // Total pot is 2x bet amount
+        let pot = bet_amount * 2; // Total pot is 2x bet amount
         
         if is_draw {
             // Return bets to both players

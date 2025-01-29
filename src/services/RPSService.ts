@@ -190,10 +190,10 @@ export class RPSService {
      * 2. Their move is stored privately (not visible to player 2)
      * 3. A public game note is created for player 2 to join
      */
-    async startGame(playerMove: number, betAmount: string): Promise<number> {
+    async startGame(playerMove: number, betAmount: string): Promise<Fr> {
         if ((await this.assignContract()) == 0) {
             console.log('No wallet available. Please create an account first.');
-            return 0;
+            return Fr.ZERO;
         }
         
         try {
@@ -233,7 +233,7 @@ export class RPSService {
             (await tx.send()).wait();
 
             console.log('Game started successfully');
-            return 1;
+            return game_id;
 
         } catch (error: any) {
             console.error('Error starting game:', error);
@@ -265,20 +265,28 @@ export class RPSService {
             const gameNote = await this.contract.methods.get_game_by_id(gameIdFr).simulate();
             const betMatch = gameNote.bet_amount;
 
+            const currentWallet = await this.accountService.getCurrentWallet();
+            if (!currentWallet) {
+                throw new Error('No wallet available');
+            }
+
+            const nonce = 0; 
+
             // Create transfer action for matching bet
             const transferAction = this.tokenContract.methods.transfer_in_public(
                 this.contract.wallet.getAddress(),  // from
                 this.contractAddress,               // to 
-                betMatch,                          // amount
-                Fr.random()                        // Use random nonce
+                BigInt(betMatch),                          // amount
+                nonce                        // Use random nonce
             );
 
-            // Create and add auth witness
-            const witness = await this.contract.wallet.createAuthWit({
-                caller: this.contractAddress,
-                action: transferAction
-            });
-            await this.contract.wallet.addAuthWitness(witness);
+            await currentWallet.setPublicAuthWit(
+                {
+                    caller: this.contractAddress,
+                    action: transferAction
+                },
+                true
+            ).send().wait();
             
             // Join the game
             const tx = await this.contract.methods.play_game(
@@ -288,6 +296,7 @@ export class RPSService {
             ).send();
             
             await tx.wait();
+
             console.log(`Joined game ${gameId}`);
             return 1;
 
@@ -369,7 +378,7 @@ export class RPSService {
             console.log('Balance:', balance);
 
             // Convert from base units (1e9) to display units
-            return (Number(balance) / 1e9).toString();
+            return (Number(balance)).toString();
         } catch (error) {
             console.error('Error getting balance:', error);
             return '0';
@@ -413,5 +422,29 @@ export class RPSService {
         }
         
         return games;
+    }
+
+    async getGameIdByIndex(index: number): Promise<Fr> {
+        let gameId = await this.contract.methods.get_game_id_by_index(index).simulate();
+
+        gameId = Fr.fromString(gameId.toString());
+        return gameId;
+    }
+
+    async getGameById(gameId: Fr): Promise<any> {
+        return await this.contract.methods.get_game_by_id(gameId).simulate();
+    }
+
+    async getContractBalance(): Promise<string> {
+        try {
+            const balance = await this.tokenContract.methods.balance_of_public(
+                this.contractAddress
+            ).simulate();
+            
+            return balance.toString();
+        } catch (error) {
+            console.error('Error getting contract balance:', error);
+            return '0';
+        }
     }
 }
