@@ -121,13 +121,13 @@ contract RockPaperScissors {
         let player1_move = play.note.value;
 
         RockPaperScissors::at(context.this_address())
-            ._resolve_game(game_id, player1_move)
+            ._resolve_game(game_id, player1_move, context.msg_sender())
             .enqueue(&mut context);
     }
 
     #[public]
     #[internal]
-    fn _resolve_game(game_id: Field, player1_move: Field) {
+    fn _resolve_game(game_id: Field, player1_move: Field, player1_address: AztecAddress) {
         let mut game_note = storage.games.at(game_id).read();
         assert(!game_note.is_completed, "Game already completed");
 
@@ -155,7 +155,7 @@ contract RockPaperScissors {
                 winner = AztecAddress { inner: player2_address };
             } else {
                 // Player1 wins
-                winner = context.msg_sender(); 
+                winner = player1_address;
             }
         }
 
@@ -165,7 +165,7 @@ contract RockPaperScissors {
         if is_draw {
             // Return bets to both players
             Token::at(token_addr)
-                .transfer_in_public(context.this_address(), context.msg_sender(), bet_amount, 0)
+                .transfer_in_public(context.this_address(), player1_address, bet_amount, 0)
                 .call(&mut context);
 
             Token::at(token_addr)
