@@ -36,13 +36,24 @@ contract RockPaperScissors {
         plays: Map<Field, PrivateMutable<ValueNote, Context>, Context>,
         games: Map<Field, PublicMutable<GameNote, Context>, Context>,
         game_ids: Map<Field, PublicImmutable<Field, Context>, Context>,
+
+        owner: PublicImmutable<AztecAddress, Context>,
+        timeout_blocks: PublicMutable<Field, Context>,
     }
 
     #[public]
     #[initializer]
-    fn constructor(token_addr: AztecAddress) {
+    fn constructor(owner: AztecAddress, token_addr: AztecAddress, timeout_blocks: Field) {
+        storage.owner.initialize(owner);
         storage.token_address.initialize(token_addr);
         storage.games_length.write( 0 );
+        storage.timeout_blocks.write(timeout_blocks);
+    }
+
+    #[public]
+    fn set_timeout_blocks(new_timeout: Field) {
+        assert(context.msg_sender() == storage.owner.read(), "Only owner can set timeout blocks");
+        storage.timeout_blocks.write(new_timeout);
     }
 
     #[private]
@@ -52,9 +63,6 @@ contract RockPaperScissors {
         bet_amount: Field
     ) {
         assert(player1_move as u8 <= 2, "Invalid move!");
-
-        //check if game_id already exists
-        //assert(!storage.game_ids.at(game_id).is_some(), "Game already exists");
 
         let mut player_move_note = ValueNote::new(player1_move, context.msg_sender());
 
@@ -193,10 +201,11 @@ contract RockPaperScissors {
         // Check player2 has made their move (blocktime will be non-zero)
         assert(game_note.blocktime != 0, "Player 2 hasn't played yet");
         
-        // Check if enough blocks have passed (e.g., 100 blocks)
+        // Check if enough blocks have passed
         let current_block = context.block_number();
         let blocks_passed = current_block - game_note.blocktime;
-        assert(blocks_passed as u32 > 100, "Not enough blocks have passed for timeout");
+        let timeout_blocks = storage.timeout_blocks.read();
+        assert(blocks_passed as u32 > timeout_blocks as u32, "Not enough blocks have passed for timeout");
 
         // Get token address
         let token_addr = storage.token_address.read();
@@ -205,7 +214,7 @@ contract RockPaperScissors {
         // Award both bets to player 2 since player 1 timed out
         let pot = bet_amount * Field::from(2);
         Token::at(token_addr)
-            .transfer_in_public(context.this_address(), context.msg_sender(), pot, 0)
+            .transfer_in_public(context.this_address(), AztecAddress { inner: game_note.player2_address }, pot, 0)
             .call(&mut context);
 
         // Mark game as completed
@@ -228,6 +237,10 @@ contract RockPaperScissors {
         storage.games_length.read()
     }
 
+    #[public]
+    unconstrained fn get_timeout_blocks() -> pub Field {
+        storage.timeout_blocks.read()
+    }
 
 }
 

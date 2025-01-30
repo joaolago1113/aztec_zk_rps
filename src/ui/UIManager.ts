@@ -2,6 +2,7 @@
 declare global {
   interface Window {
     resolveGame: (gameId: string) => Promise<void>;
+    timeoutGame: (gameId: string) => Promise<void>;
   }
 }
 
@@ -1673,87 +1674,101 @@ export class UIManager {
       });
     });
 
-    // Add click handler for Start Game button
+    // Start game button click handler
     const startGameBtn = document.getElementById('startGame');
     if (startGameBtn) {
-      startGameBtn.addEventListener('click', async () => {
-        const selectedMove = document.querySelector('#startGameMoves .move-button.selected') as HTMLButtonElement;
-        if (!selectedMove) {
-          this.addRPSLog('Please select a move first!');
-          return;
-        }
+        startGameBtn.addEventListener('click', async () => {
+            const selectedMove = document.querySelector('#startGameMoves .move-button.selected') as HTMLButtonElement;
+            if (!selectedMove) {
+                this.addRPSLog('Please select a move first!');
+                return;
+            }
 
-        const betAmountInput = document.getElementById('betAmount') as HTMLInputElement;
-        const betAmount = parseFloat(betAmountInput.value).toString();
+            const betAmountInput = document.getElementById('betAmount') as HTMLInputElement;
+            const betAmount = parseFloat(betAmountInput.value).toString();
 
-        if (!betAmountInput.value || parseFloat(betAmountInput.value) <= 0) {
-          this.addRPSLog('Please enter a valid bet amount!');
-          return;
-        }
+            if (!betAmountInput.value || parseFloat(betAmountInput.value) <= 0) {
+                this.addRPSLog('Please enter a valid bet amount!');
+                return;
+            }
 
-        try {
-          this.addRPSLog('Starting new game...');
-          const gameId = await this.rpsService.startGame(parseInt(selectedMove.dataset.move!), betAmount);
-          if (gameId === Fr.ZERO) {
-            this.addRPSLog('Failed to start game. Please check your wallet and try again.');
-            return;
-          }
-          
-          this.addRPSLog(`Game started with ${this.getMoveText(selectedMove.dataset.move!)} and bet ${betAmount}!`);
-          
-          // Clear selection and reset bet amount
-          document.querySelectorAll('#startGameMoves .move-button').forEach(btn => 
-            btn.classList.remove('selected')
-          );
-          betAmountInput.value = '1';
+            try {
+                startGameBtn.classList.add('loading');
+                
+                // Check user's balance
+                const balance = await this.rpsService.getPublicBalance();
+                if (BigInt(balance) < BigInt(betAmount)) {
+                    this.addRPSLog(`Insufficient balance! You need ${betAmount} tokens but only have ${balance}`);
+                    return;
+                }
 
-          // Add the new game to the table immediately
-          this.addGameToTable({
-            id: gameId.toBigInt(),
-            betAmount: betAmount,
-            isCompleted: false,
-            player2Move: '0',
-            blocktime: '0'
-          });
+                this.addRPSLog('Starting new game...');
+                const gameId = await this.rpsService.startGame(parseInt(selectedMove.dataset.move!), betAmount);
+                if (gameId === Fr.ZERO) {
+                    this.addRPSLog('Failed to start game. Please check your wallet and try again.');
+                    return;
+                }
+                
+                this.addRPSLog(`Game started with ${this.getMoveText(selectedMove.dataset.move!)} and bet ${betAmount}!`);
+                
+                // Clear selection and reset bet amount
+                document.querySelectorAll('#startGameMoves .move-button').forEach(btn => 
+                    btn.classList.remove('selected')
+                );
+                betAmountInput.value = '1';
 
-          // Update full list after a delay to catch any other changes
-        } catch (err: any) {
-          this.addRPSLog(`Error: ${err?.message || err}`);
-        }
-      });
+                // Add the new game to the table immediately
+                this.addGameToTable({
+                    id: gameId.toBigInt(),
+                    betAmount: betAmount,
+                    isCompleted: false,
+                    player2Move: '0',
+                    blocktime: '0'
+                });
+            } catch (err: any) {
+                this.addRPSLog(`Error: ${err?.message || err}`);
+            } finally {
+                startGameBtn.classList.remove('loading');
+            }
+        });
     }
 
-    // Add click handler for Join Game button
-    const joinGameBtn = document.getElementById('joinGame');
-    if (joinGameBtn) {
-      joinGameBtn.addEventListener('click', async () => {
-        const selectedMove = document.querySelector('#joinGameMoves .move-button.selected') as HTMLButtonElement;
-        if (!selectedMove) {
-          this.addRPSLog('Please select a move first!');
-          return;
-        }
+    // Join game button click handler
+    const joinGameButton = document.getElementById('joinGame');
+    if (joinGameButton) {
+        joinGameButton.addEventListener('click', async () => {
+            const gameIdInput = document.getElementById('gameId') as HTMLInputElement;
+            const selectedMove = document.querySelector('#joinGameMoves .move-button.selected');
+            
+            if (!gameIdInput?.value || !selectedMove?.getAttribute('data-move')) {
+                this.addRPSLog('Please select a move and enter a game ID');
+                return;
+            }
 
-        const gameIdInput = document.getElementById('gameId') as HTMLInputElement;
-        const gameId = gameIdInput.value;
-        if (!gameId) {
-          this.addRPSLog('Please enter a game ID!');
-          return;
-        }
+            try {
+                joinGameButton.classList.add('loading');
+                const result = await this.rpsService.joinGame(
+                    gameIdInput.value,
+                    parseInt(selectedMove.getAttribute('data-move')!)
+                );
 
-        try {
-          this.addRPSLog(`Joining game ${gameId}...`);
-          await this.rpsService.joinGame(gameId, parseInt(selectedMove.dataset.move!));
-          this.addRPSLog(`Successfully joined game ${gameId} with ${this.getMoveText(selectedMove.dataset.move!)}!`);
-          
-          // Clear selection and game ID
-          document.querySelectorAll('#joinGameMoves .move-button').forEach(btn => 
-            btn.classList.remove('selected')
-          );
-          gameIdInput.value = '';
-        } catch (err: any) {
-          this.addRPSLog(`Error: ${err?.message || err}`);
-        }
-      });
+                if (result.success && result.gameInfo) {
+                    this.updateGameRow(result.gameInfo);
+                    this.addRPSLog(`Successfully joined game ${this.formatGameId(gameIdInput.value)}!`);
+                    await this.updateRPSBalance();
+                    
+                    // Clear selection and game ID
+                    document.querySelectorAll('#joinGameMoves .move-button').forEach(btn => 
+                        btn.classList.remove('selected')
+                    );
+                    gameIdInput.value = '';
+                }
+            } catch (err: any) {
+                this.addRPSLog(`Error joining game: ${err?.message || err}`);
+            } finally {
+                joinGameButton.classList.remove('loading');
+            }
+        });
     }
 
     // Add balance update
@@ -1761,6 +1776,20 @@ export class UIManager {
     
     // Add games list update
     await this.updateGamesList();
+
+    // Add global handler for timeout button
+    window.timeoutGame = async (gameId: string) => {
+      try {
+        await this.rpsService.timeoutGame(gameId);
+        this.addRPSLog(`Successfully timed out game ${this.formatGameId(gameId)}!`);
+        await this.updateGamesList();
+      } catch (err: any) {
+        this.addRPSLog(`Error timing out game: ${err?.message || err}`);
+      }
+    };
+
+    // Start periodic timeout checks
+    setInterval(() => this.updateGameTimeouts(), 10000); // Check every 10 seconds
   }
 
   private addRPSLog(message: string) {
@@ -1795,6 +1824,7 @@ export class UIManager {
     
     if (userBalanceSpan) {
         const balance = await this.rpsService.getPublicBalance();
+
         userBalanceSpan.textContent = balance;
     }
     
@@ -1804,34 +1834,73 @@ export class UIManager {
     }
   }
 
-  private generateGameRow(game: { id: bigint, betAmount: string, isCompleted: boolean, player2Move: string, blocktime: string }): string {
+  public updateGameRow(game: { id: bigint, betAmount: string, isCompleted: boolean, player2Move: string, blocktime: string }) {
+    const gameRow = document.querySelector(`tr[data-game-id="${game.id}"]`);
+    if (!gameRow) return;
 
+    // Update status cell
+    const statusCell = gameRow.querySelector('td:nth-child(3)');
+    if (statusCell) {
+        statusCell.textContent = game.isCompleted ? 'Completed' : 'Active';
+    }
+
+    // Update player 2 move cell
+    const moveCell = gameRow.querySelector('td:nth-child(4)');
+    if (moveCell) {
+        moveCell.textContent = game.blocktime === '0' ? 'Waiting' : this.getMoveText(game.player2Move);
+    }
+
+    // Update actions cell
+    const actionsCell = gameRow.querySelector('td:nth-child(5)');
+    if (actionsCell) {
+        if (game.isCompleted) {
+            actionsCell.innerHTML = '-';
+        } else if (game.blocktime === '0') {
+            actionsCell.innerHTML = `
+                <button class="button action-button play-button" onclick="document.getElementById('gameId').value='${game.id}'; document.getElementById('joinGameSection').scrollIntoView({behavior: 'smooth'})">
+                    Play
+                </button>`;
+        } else {
+            actionsCell.innerHTML = `
+                <div class="game-actions">
+                    <button onclick="resolveGame('${game.id}')" class="resolve-button">
+                        Resolve
+                    </button>
+                    <button onclick="timeoutGame('${game.id}')" class="timeout-button" id="timeout-${game.id}">
+                        Timeout
+                    </button>
+                    <div class="timeout-info" id="timeout-info-${game.id}"></div>
+                </div>`;
+        }
+    }
+  }
+
+  private generateGameRow(game: { id: bigint, betAmount: string, isCompleted: boolean, player2Move: string, blocktime: string }) {
     const id = game.id.toString();
+    const isWaitingForPlayer2 = game.blocktime === '0';
 
     return `
-        <tr>
-            <td class="game-id-cell">
-                <span class="truncated-id">${this.formatGameId(id)}</span>
-                <button class="copy-button" onclick="event.stopPropagation(); navigator.clipboard.writeText('${id}')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                </button>
-            </td>
-            <td>${game.betAmount} TOKEN</td>
+        <tr data-game-id="${id}">
+            <td>${this.formatGameId(id)}</td>
+            <td>${game.betAmount}</td>
             <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
-            <td>${game.player2Move === '0' ? '--' : this.getMoveText(game.player2Move)}</td>
+            <td>${isWaitingForPlayer2 ? 'Waiting' : this.getMoveText(game.player2Move)}</td>
             <td>
-                ${!game.isCompleted ? 
-                    game.player2Move === '0' ?
+                ${game.isCompleted ? '-' : 
+                    isWaitingForPlayer2 ? 
                         `<button class="button action-button play-button" onclick="document.getElementById('gameId').value='${id}'; document.getElementById('joinGameSection').scrollIntoView({behavior: 'smooth'})">
                             Play
                         </button>` :
-                        `<button class="button action-button resolve-button" onclick="window.resolveGame('${id}')">
-                            Resolve
-                        </button>`
-                    : ''}
+                        `<div class="game-actions">
+                            <button onclick="resolveGame('${id}')" class="resolve-button">
+                                Resolve
+                            </button>
+                            <button onclick="timeoutGame('${id}')" class="timeout-button" id="timeout-${id}">
+                                Timeout
+                            </button>
+                            <div class="timeout-info" id="timeout-info-${id}"></div>
+                        </div>`
+                }
             </td>
         </tr>
     `;
@@ -1946,6 +2015,35 @@ export class UIManager {
         gamesTableBody.insertBefore(rowElement, gamesTableBody.firstChild);
     } else {
         gamesTableBody.appendChild(rowElement);
+    }
+  }
+
+  private async updateGameTimeouts() {
+    const games = Array.from(document.querySelectorAll('[id^="timeout-"]'));
+    for (const element of games) {
+        const gameId = element.id.replace('timeout-', '');
+        const timeoutInfo = await this.rpsService.checkGameTimeout(gameId);
+        
+        console.log(timeoutInfo.blocksLeft)
+        
+        const timeoutButton = document.getElementById(`timeout-${gameId}`) as HTMLButtonElement;
+        const timeoutInfoDiv = document.getElementById(`timeout-info-${gameId}`);
+
+        if (timeoutButton && timeoutInfoDiv) {
+            if (timeoutInfo.canTimeout) {
+                timeoutButton.disabled = false;
+                timeoutButton.classList.add('can-timeout');
+                timeoutInfoDiv.textContent = '⚠️ Game can be timed out! Player 1 failed to resolve in time.';
+            } else if (timeoutInfo.blocksLeft && timeoutInfo.blocksLeft > 0) {
+                timeoutButton.disabled = true;
+                timeoutButton.classList.remove('can-timeout');
+                timeoutInfoDiv.textContent = `⏳ ${timeoutInfo.blocksLeft} blocks until timeout available`;
+            } else {
+                timeoutButton.disabled = true;
+                timeoutButton.classList.remove('can-timeout');
+                timeoutInfoDiv.textContent = 'Waiting for player 2 to play';
+            }
+        }
     }
   }
 }

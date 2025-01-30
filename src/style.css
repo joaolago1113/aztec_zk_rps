@@ -1451,34 +1451,29 @@ footer nav a:hover {
 
 .move-options {
   display: flex;
-  justify-content: space-between;
-  margin: 1.5rem 0;
   gap: 1rem;
+  margin: 1rem 0;
 }
 
 .move-button {
-  background: var(--secondary);
-  color: var(--secondary-foreground);
-  border: 1px solid var(--border);
+  flex: 1;
   padding: 1rem;
+  border: 2px solid var(--border);
   border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-foreground);
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  width: 33%;
 }
 
 .move-button:hover {
-  background: var(--muted);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .move-button.selected {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-color: var(--primary);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
 }
 
 .move-icon {
@@ -1494,19 +1489,19 @@ footer nav a:hover {
 }
 
 .logs-container {
-  background: var(--background);
-  border-radius: var(--radius);
-  padding: 1rem;
   max-height: 200px;
   overflow-y: auto;
+  padding: 1rem;
+  background: var(--card);
+  border-radius: var(--radius);
   border: 1px solid var(--border);
+  margin-top: 1rem;
 }
 
 .log-entry {
-  color: var(--foreground);
-  margin-bottom: 0.5rem;
   padding: 0.5rem;
   border-bottom: 1px solid var(--border);
+  font-family: monospace;
 }
 
 .log-entry:last-child {
@@ -1520,7 +1515,9 @@ footer nav a:hover {
 }
 
 .game-actions {
-  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .input-with-button {
@@ -1554,227 +1551,254 @@ footer nav a:hover {
 }
 
 .balance-display {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
 }
 
 .balance-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.balance-label {
-    color: var(--muted-foreground);
-}
-
-#tokenBalance {
-    font-weight: bold;
-    color: var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: color-mix(in srgb, var(--card) 95%, var(--muted));
+  border-radius: var(--radius);
 }
 
 .game-list {
-    margin-top: 2rem;
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    border: 1px solid var(--border);
+  margin-top: 2rem;
 }
 
-.small-button {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+.game-list table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-.table-container {
-    overflow-x: auto;
-    margin-top: 1rem;
+.game-list th {
+  text-align: left;
+  padding: 1rem;
+  background: var(--card);
+  border-bottom: 2px solid var(--border);
 }
 
-.table {
-    width: 100%;
-    border-collapse: collapse;
+.game-list td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.table th,
-.table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-}
-
-.table th {
-    font-weight: 600;
-    color: var(--muted-foreground);
-}
-
-.game-id-cell {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.truncated-id {
-    font-family: monospace;
-}
-
-.copy-button {
-    background: none;
-    border: none;
-    padding: 0.25rem;
-    cursor: pointer;
-    color: var(--muted-foreground);
-    border-radius: var(--radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.copy-button:hover {
-    color: var(--foreground);
-    background: var(--muted);
-}
-
-.action-button {
-    min-width: 80px;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    border-radius: var(--radius);
+.game-list tr:hover td {
+  background: color-mix(in srgb, var(--card) 95%, var(--muted));
 }
 
 .play-button {
-    background: var(--accent);
-    color: var(--accent-foreground);
-    border: none;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .play-button:hover {
-    background: color-mix(in srgb, var(--accent) 80%, black);
+  background: color-mix(in srgb, var(--primary) 80%, black);
+  transform: translateY(-1px);
 }
 
 .resolve-button {
-    background: var(--primary);
-    color: var(--primary-foreground);
-    border: none;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .resolve-button:hover {
-    background: color-mix(in srgb, var(--primary) 80%, black);
+  background: color-mix(in srgb, var(--accent) 80%, black);
 }
 
 .loading-cell {
-    text-align: center;
-    padding: 2rem !important;
-    color: var(--muted-foreground);
-    background: var(--card);
+  text-align: center;
+  padding: 2rem !important;
+  color: var(--muted-foreground);
+  background: var(--card);
 }
 
 .loading-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    width: 100%;
-    height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100px;
 }
 
 .loading-spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid var(--muted);
-    border-radius: 50%;
-    border-top-color: var(--accent);
-    animation: spin 1s linear infinite;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--muted);
+  border-radius: 50%;
+  border-top-color: var(--accent);
+  animation: spin 1s linear infinite;
 }
 
 .loading-container span {
-    font-size: 1rem;
+  font-size: 1rem;
 }
 
 @keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Make sure the loading cell takes full width */
 td.loading-cell {
-    width: 100%;
-    padding: 0 !important;
+  width: 100%;
+  padding: 0 !important;
 }
 
 /* Error cell styling */
 .error-cell {
-    text-align: center;
-    padding: 2rem !important;
-    color: var(--destructive);
-    background: var(--card);
+  text-align: center;
+  padding: 2rem !important;
+  color: var(--destructive);
+  background: var(--card);
 }
 
 .loading-cell.subtle {
-    background: transparent;
-    color: var(--muted-foreground);
-    opacity: 0.8;
-    padding: 1rem !important;
+  background: transparent;
+  color: var(--muted-foreground);
+  opacity: 0.8;
+  padding: 1rem !important;
 }
 
 .loading-spinner.small {
-    width: 16px;
-    height: 16px;
-    border-width: 2px;
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
 }
 
 /* Improve table styling */
 .table {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .table thead tr {
-    background: var(--muted);
+  background: var(--muted);
 }
 
 .table th {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
 }
 
 .table tr:hover {
-    background: color-mix(in srgb, var(--card) 95%, var(--muted));
+  background: color-mix(in srgb, var(--card) 95%, var(--muted));
 }
 
 /* Improve button styling */
 .action-button {
-    font-weight: 500;
-    letter-spacing: 0.025em;
-    transition: all 0.2s ease;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  transition: all 0.2s ease;
 }
 
 .action-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Balance display improvements */
 .balance-display {
-    background: var(--card);
-    padding: 1rem;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    margin-bottom: 1.5rem;
+  background: var(--card);
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
 }
 
 .balance-row {
-    padding: 0.5rem;
-    border-radius: var(--radius);
+  padding: 0.5rem;
+  border-radius: var(--radius);
 }
 
 .balance-row:hover {
-    background: var(--muted);
+  background: var(--muted);
+}
+
+.timeout-button {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  border: none;
+  opacity: 0.7;
+  cursor: not-allowed;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.timeout-button.can-timeout {
+  background: var(--warning);
+  color: var(--warning-foreground);
+  opacity: 1;
+  cursor: pointer;
+}
+
+.timeout-button.can-timeout:hover {
+  background: color-mix(in srgb, var(--warning) 80%, black);
+}
+
+.timeout-info {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+
+.game-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Add these button loading styles */
+.button.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.button.loading::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: button-spin 0.6s linear infinite;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes button-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }

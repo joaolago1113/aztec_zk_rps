@@ -14,6 +14,7 @@ export class RPSService {
     private pxe!: PXE;
     private contractInitialized: boolean = false;
     private tokenContractInitialized: boolean = false;
+    private TIMEOUT_BLOCKS: number | null = null;
 
     constructor(pxe: PXE) {
       if (!pxe) {
@@ -252,10 +253,16 @@ export class RPSService {
      * 2. Their move is stored publicly in the game note
      * 3. The game is ready for player 1 to resolve
      */
-    async joinGame(gameId: string, playerMove: number): Promise<number> {
+    async joinGame(gameId: string, playerMove: number): Promise<{ success: boolean, gameInfo?: { 
+        id: bigint,
+        betAmount: string,
+        isCompleted: boolean,
+        player2Move: string,
+        blocktime: string
+    }}> {
         if ((await this.assignContract()) == 0) {
             console.log('No wallet available. Please create an account first.');
-            return 0;
+            return { success: false };
         }
 
         try {
@@ -276,8 +283,8 @@ export class RPSService {
             const transferAction = this.tokenContract.methods.transfer_in_public(
                 this.contract.wallet.getAddress(),  // from
                 this.contractAddress,               // to 
-                BigInt(betMatch),                          // amount
-                nonce                        // Use random nonce
+                BigInt(betMatch),                  // amount
+                nonce                              // Use random nonce
             );
 
             await currentWallet.setPublicAuthWit(
@@ -298,7 +305,19 @@ export class RPSService {
             await tx.wait();
 
             console.log(`Joined game ${gameId}`);
-            return 1;
+            
+            // Get updated game info
+            const updatedGame = await this.contract.methods.get_game_by_id(gameIdFr).simulate();
+            
+            const gameInfo = {
+                id: BigInt(gameId),
+                betAmount: updatedGame.bet_amount.toString(),
+                isCompleted: updatedGame.is_completed,
+                player2Move: updatedGame.player2_move.toString(),
+                blocktime: updatedGame.blocktime.toString()
+            };
+
+            return { success: true, gameInfo };
 
         } catch (error: any) {
             console.error('Error joining game:', error);
@@ -344,19 +363,14 @@ export class RPSService {
      * @returns Game details including moves, completion status, and timing
      */
     async getGameDetails(gameId: string) {
-        try {
-            const gameNote = await this.contract.methods.get_game_by_id(Fr.fromString(gameId)).simulate();
-            return {
-                id: gameId,
-                betAmount: gameNote.bet_amount.toString(),
-                isCompleted: gameNote.is_completed,
-                player2Move: gameNote.player2_move.toString(),
-                blocktime: gameNote.blocktime.toString()
-            };
-        } catch (error: any) {
-            console.error('Error getting game details:', error);
-            throw error;
-        }
+        const gameNote = await this.contract.methods.get_game_by_id(Fr.fromString(gameId)).simulate();
+        return {
+            betAmount: gameNote.bet_amount.toString(),
+            isCompleted: gameNote.is_completed,
+            player2Move: gameNote.player2_move.toString(),
+            blocktime: gameNote.blocktime.toString(),
+            player2Address: gameNote.player2_address
+        };
     }
 
     async getPublicBalance(): Promise<string> {
@@ -378,7 +392,7 @@ export class RPSService {
             console.log('Balance:', balance);
 
             // Convert from base units (1e9) to display units
-            return (Number(balance)).toString();
+            return ((balance)).toString();
         } catch (error) {
             console.error('Error getting balance:', error);
             return '0';
@@ -386,6 +400,7 @@ export class RPSService {
     }
 
     async getGamesCount(): Promise<number> {
+        if(!this.contract) return 0;
         try {
             const gamesLength = await this.contract.methods.get_games_length().simulate();
             return Number(gamesLength);
@@ -436,6 +451,7 @@ export class RPSService {
     }
 
     async getContractBalance(): Promise<string> {
+        if(!this.tokenContract) return '0';
         try {
             const balance = await this.tokenContract.methods.balance_of_public(
                 this.contractAddress
@@ -445,6 +461,71 @@ export class RPSService {
         } catch (error) {
             console.error('Error getting contract balance:', error);
             return '0';
+        }
+    }
+
+    async getTimeoutBlocks(): Promise<number> {
+        // Cache the value since it's a constant
+        if (this.TIMEOUT_BLOCKS !== null) {
+            return this.TIMEOUT_BLOCKS;
+        }
+
+        try {
+            const timeoutBlocks = await this.contract.methods.get_timeout_blocks().simulate();
+            this.TIMEOUT_BLOCKS = Number(timeoutBlocks);
+            return this.TIMEOUT_BLOCKS;
+        } catch (error) {
+            console.error('Error getting timeout blocks:', error);
+            return 2; // Default to match contract's initial value
+        }
+    }
+
+    async checkGameTimeout(gameId: string): Promise<{canTimeout: boolean, blocksLeft?: number}> {
+        try {
+            // Clean the gameId string to ensure it's just the number
+            const cleanGameId = gameId.replace(/^(timeout-|info-)/, '');
+
+            console.log('Checking timeout for game:', cleanGameId);
+            const gameNote = await this.contract.methods.get_game_by_id(BigInt(cleanGameId)).simulate();
+            
+            // If game is completed or player 2 hasn't played yet (blocktime will be 0)
+            if (gameNote.is_completed || gameNote.blocktime === 0n) {
+                return { canTimeout: false };
+            }
+
+            const currentBlock = await this.pxe.getBlockNumber();
+            const timeoutBlocks = await this.getTimeoutBlocks();
+
+            console.log('Current block:', currentBlock);
+            console.log('Game blocktime:', gameNote.blocktime.toString());
+            
+            const blocksPassed = currentBlock - Number(gameNote.blocktime);
+            console.log('Blocks passed:', blocksPassed);
+            
+            if (blocksPassed >= timeoutBlocks) {
+                return { 
+                    canTimeout: true,
+                    blocksLeft: 0
+                };
+            } else {
+                return { 
+                    canTimeout: false, 
+                    blocksLeft: timeoutBlocks - blocksPassed 
+                };
+            }
+        } catch (error) {
+            console.error('Error checking game timeout:', error);
+            return { canTimeout: false };
+        }
+    }
+
+    async timeoutGame(gameId: string) {
+        try {
+            await this.contract.methods.timeout_game(Fr.fromString(gameId)).send().wait();
+            return true;
+        } catch (error) {
+            console.error('Error timing out game:', error);
+            throw error;
         }
     }
 }
