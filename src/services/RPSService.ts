@@ -15,6 +15,8 @@ export class RPSService {
     private contractInitialized: boolean = false;
     private tokenContractInitialized: boolean = false;
     private TIMEOUT_BLOCKS: number | null = null;
+    private userGames: Map<string, { started: string[], joined: string[] }> = new Map();
+    private currentWalletAddress: string | null = null;
 
     constructor(pxe: PXE) {
       if (!pxe) {
@@ -28,7 +30,15 @@ export class RPSService {
      * @param address - (Optional) The address of an existing RPS contract to load
      */
     async initialize(accountService: AccountService) {
+        const currentWallet = await accountService.getCurrentWallet();
+        if (!currentWallet) {
+            console.error('No wallet available. Please create an account first.');
+            return;
+        }
 
+        // Set current wallet address
+        this.currentWalletAddress = currentWallet.getAddress().toString();
+        
         const contractAddress = AztecAddress.fromString(CONFIG.RPS_CONTRACT.ADDRESS);
         const tokenContractAddress = AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.ADDRESS);
 
@@ -36,25 +46,14 @@ export class RPSService {
         this.contractAddress = contractAddress;
         this.accountService = accountService;
         
-
-        const currentWallet = await accountService.getCurrentWallet();
-
-        if (!currentWallet) {
-            console.error('No wallet available. Please create an account first.');
-            return;
-        }
-
-        
         await this.initializeContract(accountService);
         await this.initializeTokenContract(accountService);
+        this.loadUserGames();
     }
-
-
 
     private async initializeContract(accountService: AccountService) {
         const currentWallet = await accountService.getCurrentWallet();
         try {
-
             this.contractInitialized = true;
 
             if (!(await this.pxe.isContractPubliclyDeployed(this.contractAddress))) {
@@ -103,7 +102,6 @@ export class RPSService {
     private async initializeTokenContract(accountService: AccountService) {
         const currentWallet = await accountService.getCurrentWallet();
         try {
-
             this.tokenContractInitialized = true;
 
             if (!(await this.pxe.isContractPubliclyDeployed(this.tokenContractAddress))) {
@@ -153,17 +151,12 @@ export class RPSService {
     }
 
     async assignContract(){
-
         const currentWallet = await this.accountService.getCurrentWallet();
 
         if (!currentWallet) {
-
             console.log('No wallet available. Please create an account first.');
-
             return 0;
-
         }else{
-
             if(this.tokenContractInitialized){
                 this.tokenContract = await TokenContract.at(this.tokenContractAddress, currentWallet!);
             }else{
@@ -203,6 +196,9 @@ export class RPSService {
                 throw new Error('No wallet available');
             }
 
+            // Store wallet address
+            this.currentWalletAddress = currentWallet.getAddress().toString();
+
             const nonce = 0; 
             
             // First approve the transfer
@@ -233,7 +229,13 @@ export class RPSService {
 
             (await tx.send()).wait();
 
-            console.log('Game started successfully');
+            // Add game to user's started games
+            const userGames = this.userGames.get(this.currentWalletAddress) || { started: [], joined: [] };
+            userGames.started.push(game_id.toString());
+            this.userGames.set(this.currentWalletAddress, userGames);
+            
+            console.log('Added game to started games:', game_id.toString());
+            this.saveUserGames();
             return game_id;
 
         } catch (error: any) {
@@ -253,13 +255,7 @@ export class RPSService {
      * 2. Their move is stored publicly in the game note
      * 3. The game is ready for player 1 to resolve
      */
-    async joinGame(gameId: string, playerMove: number): Promise<{ success: boolean, gameInfo?: { 
-        id: bigint,
-        betAmount: string,
-        isCompleted: boolean,
-        player2Move: string,
-        blocktime: string
-    }}> {
+    async joinGame(gameId: string, playerMove: number): Promise<{ success: boolean, gameInfo?: any }> {
         if ((await this.assignContract()) == 0) {
             console.log('No wallet available. Please create an account first.');
             return { success: false };
@@ -276,6 +272,9 @@ export class RPSService {
             if (!currentWallet) {
                 throw new Error('No wallet available');
             }
+
+            // Store wallet address
+            this.currentWalletAddress = currentWallet.getAddress().toString();
 
             const nonce = 0; 
 
@@ -304,7 +303,13 @@ export class RPSService {
             
             await tx.wait();
 
-            console.log(`Joined game ${gameId}`);
+            // Add game to user's joined games
+            const userGames = this.userGames.get(this.currentWalletAddress) || { started: [], joined: [] };
+            userGames.joined.push(gameId);
+            this.userGames.set(this.currentWalletAddress, userGames);
+            
+            console.log('Added game to joined games:', gameId);
+            this.saveUserGames();
             
             // Get updated game info
             const updatedGame = await this.contract.methods.get_game_by_id(gameIdFr).simulate();
@@ -526,6 +531,84 @@ export class RPSService {
         } catch (error) {
             console.error('Error timing out game:', error);
             throw error;
+        }
+    }
+
+    async getUserStartedGames(): Promise<any[]> {
+        if (!this.currentWalletAddress) {
+            console.warn('No wallet address available');
+            return [];
+        }
+        
+        const userGames = this.userGames.get(this.currentWalletAddress);
+        if (!userGames) {
+            console.warn('No games found for current wallet');
+            return [];
+        }
+        
+        console.log('User started games:', userGames.started);
+        
+        const games = [];
+        for (const gameId of userGames.started) {
+            try {
+                const game = await this.getGameDetails(gameId);
+                games.push({ ...game, id: gameId });
+            } catch (err) {
+                console.error(`Error fetching game ${gameId}:`, err);
+            }
+        }
+        return games;
+    }
+
+    async getUserJoinedGames(): Promise<any[]> {
+        if (!this.currentWalletAddress) {
+            console.warn('No wallet address available');
+            return [];
+        }
+        
+        const userGames = this.userGames.get(this.currentWalletAddress);
+        if (!userGames) {
+            console.warn('No games found for current wallet');
+            return [];
+        }
+        
+        console.log('User joined games:', userGames.joined);
+        
+        const games = [];
+        for (const gameId of userGames.joined) {
+            try {
+                const game = await this.getGameDetails(gameId);
+                games.push({ ...game, id: gameId });
+            } catch (err) {
+                console.error(`Error fetching game ${gameId}:`, err);
+            }
+        }
+        return games;
+    }
+
+    private saveUserGames() {
+        if (!this.currentWalletAddress) {
+            console.warn('No wallet address available to save games');
+            return;
+        }
+        
+        const userGames = this.userGames.get(this.currentWalletAddress);
+        if (userGames) {
+            localStorage.setItem(`userGames_${this.currentWalletAddress}`, JSON.stringify(userGames));
+            console.log('Saved user games:', userGames);
+        }
+    }
+
+    private loadUserGames() {
+        if (!this.currentWalletAddress) {
+            console.warn('No wallet address available to load games');
+            return;
+        }
+        
+        const storedGames = localStorage.getItem(`userGames_${this.currentWalletAddress}`);
+        if (storedGames) {
+            this.userGames.set(this.currentWalletAddress, JSON.parse(storedGames));
+            console.log('Loaded user games:', JSON.parse(storedGames));
         }
     }
 }

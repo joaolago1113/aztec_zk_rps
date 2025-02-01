@@ -46,7 +46,7 @@ contract RockPaperScissors {
     fn constructor(owner: AztecAddress, token_addr: AztecAddress, timeout_blocks: Field) {
         storage.owner.initialize(owner);
         storage.token_address.initialize(token_addr);
-        storage.games_length.write( 0 );
+        storage.games_length.write(0);
         storage.timeout_blocks.write(timeout_blocks);
     }
 

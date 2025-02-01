@@ -1472,8 +1472,11 @@ footer nav a:hover {
 }
 
 .move-button.selected {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 2px solid var(--accent);
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .move-icon {
@@ -1548,16 +1551,14 @@ footer nav a:hover {
 /* Ensure consistent spacing */
 .game-card .form-group:last-child {
   margin-bottom: 0;
+  width: 100%;
 }
 
 .balance-display {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin: 1rem 0;
-  padding: 1rem;
-  background: var(--card);
+  background: var(--background);
   border-radius: var(--radius);
+  padding: 1rem;
+  margin: 1rem 0;
   border: 1px solid var(--border);
 }
 
@@ -1565,9 +1566,7 @@ footer nav a:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem;
-  background: color-mix(in srgb, var(--card) 95%, var(--muted));
-  border-radius: var(--radius);
+  padding: 0.5rem 0;
 }
 
 .game-list {
@@ -1779,7 +1778,7 @@ td.loading-cell {
 /* Add these button loading styles */
 .button.loading {
   position: relative;
-  color: transparent;
+  color: transparent !important;
   pointer-events: none;
 }
 
@@ -1800,5 +1799,232 @@ td.loading-cell {
 @keyframes button-spin {
   to {
     transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* New Tab styles for the RPS page */
+.tab-container {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+  border-bottom: 2px solid var(--border);
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: bold;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  color: var(--foreground);
+  transition: color 0.3s, border-bottom 0.3s;
+}
+
+.tab-button:hover {
+  color: var(--accent);
+}
+
+.tab-button.active {
+  border-bottom: 3px solid var(--accent);
+  color: var(--accent);
+}
+
+/* Improved card styling for a modern look */
+.card {
+  background-color: var(--card);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+/* Improved table styling */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.table th, .table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.table thead {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.table tbody tr:hover {
+  background-color: var(--muted);
+}
+
+#joinGame{
+  width: 100%;
+}
+
+/* Button improvements */
+.button {
+  font-size: 1rem;
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.button.primary-button {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+}
+
+.button.primary-button:hover {
+  background-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.button.secondary-button {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+}
+
+.button.secondary-button:hover {
+  background-color: var(--secondary);
+}
+
+/* New RPS-specific styles */
+.rps-container {
+  max-width: 1400px;
+}
+
+.rps-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.rps-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: var(--muted-foreground);
+  font-size: 1.1rem;
+}
+
+/* Main Grid Layout */
+.rps-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* Game Controls */
+.game-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.balance-card {
+  background: var(--card);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+}
+
+.balance-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.balance-row:last-child {
+  border-bottom: none;
+}
+
+/* Game Cards */
+.game-card {
+  background: var(--card);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+}
+
+/* Right Column Layout */
+.rps-column:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Statistics */
+.game-statistics {
+  background: var(--card);
+  padding: 1rem;
+  border-radius: var(--radius);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+  margin-top: 0.5rem;
+}
+
+/* Game History */
+.game-history {
+  background: var(--card);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Game Tables */
+.game-tables {
+  background: var(--card);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .rps-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

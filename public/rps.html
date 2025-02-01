@@ -9,130 +9,210 @@
 <body>
   <main>
     <div class="container">
-      <div class="card full-width-card">
-        <div class="card-header">
-          <h3 class="card-title">Rock Paper Scissors</h3>
-          <p class="card-description">Challenge your friends to a game of Rock Paper Scissors on the blockchain!</p>
-          <div class="balance-display">
-            <div class="balance-row">
-              <span class="balance-label">Your Balance:</span>
-              <span id="tokenBalance">Loading...</span> TOKEN
-            </div>
-            <div class="balance-row">
-              <span class="balance-label">Pot Balance:</span>
-              <span id="contractBalance">Loading...</span> TOKEN
-            </div>
-          </div>
-        </div>
-        
-        <div class="card-content">
-          <div class="game-grid">
-            <!-- Start Game Section -->
-            <div class="game-card">
-              <h4>Start New Game</h4>
-              <p class="card-description">Choose your move and set your bet amount:</p>
-              
-              <div class="move-options" id="startGameMoves">
-                <button class="move-button" data-move="0">
-                  <div class="move-icon">✊</div>
-                  Rock
-                </button>
-                <button class="move-button" data-move="1">
-                  <div class="move-icon">✋</div>
-                  Paper
-                </button>
-                <button class="move-button" data-move="2">
-                  <div class="move-icon">✌️</div>
-                  Scissors
-                </button>
+      <div class="rps-container">
+        <!-- Main Content Grid -->
+        <div class="rps-main-grid">
+          <!-- Left Column: Game Controls -->
+          <div class="rps-column">
+            <div class="game-controls">
+              <!-- Balance Display -->
+              <div class="balance-card">
+                <div class="balance-row">
+                  <span>Your Balance:</span>
+                  <span id="tokenBalance">Loading...</span>
+                </div>
+                <div class="balance-row">
+                  <span>Pot Balance:</span>
+                  <span id="contractBalance">Loading...</span>
+                </div>
               </div>
 
-              <div class="game-actions">
-                <div class="form-group">
-                  <label for="betAmount" class="label">Bet Amount (TOKEN)</label>
-                  <div class="input-with-button">
-                    <input 
-                      type="number" 
-                      id="betAmount" 
-                      class="input" 
-                      placeholder="Enter amount to bet" 
-                      min="0.01" 
-                      step="0.01"
-                      value="1337"
-                    >
-                    <button id="startGame" class="button primary-button">Start Game</button>
+              <!-- Start Game Section -->
+              <div class="game-card">
+                <h3>Start New Game</h3>
+                <p class="card-description">Choose your move and set your bet amount:</p>
+                
+                <div class="move-options" id="startGameMoves">
+                  <button class="move-button" data-move="0">
+                    <div class="move-icon">✊</div>
+                    Rock
+                  </button>
+                  <button class="move-button" data-move="1">
+                    <div class="move-icon">✋</div>
+                    Paper
+                  </button>
+                  <button class="move-button" data-move="2">
+                    <div class="move-icon">✌️</div>
+                    Scissors
+                  </button>
+                </div>
+
+                <div class="game-actions">
+                  <div class="form-group">
+                    <label for="betAmount" class="label">Bet Amount (TOKEN)</label>
+                    <div class="input-with-button">
+                      <input 
+                        type="number" 
+                        id="betAmount" 
+                        class="input" 
+                        placeholder="Enter amount to bet" 
+                        min="0.01" 
+                        step="0.01"
+                        value="1337"
+                      >
+                      <button id="startGame" class="button primary-button">Start Game</button>
+                    </div>
                   </div>
+                </div>
+              </div>
+
+              <!-- Join Game Section -->
+              <div class="game-card">
+                <h3>Join Game</h3>
+                <p class="card-description">Enter a game ID and choose your move:</p>
+
+                <div class="game-actions">
+                  <div class="form-group">
+                    <label for="gameId" class="label">Game ID</label>
+                    <div class="input-with-button">
+                      <input 
+                        type="number" 
+                        id="gameId" 
+                        class="input" 
+                        placeholder="Enter game ID to join" 
+                        min="0"
+                      >
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="move-options" id="joinGameMoves">
+                  <button class="move-button" data-move="0">
+                    <div class="move-icon">✊</div>
+                    Rock
+                  </button>
+                  <button class="move-button" data-move="1">
+                    <div class="move-icon">✋</div>
+                    Paper
+                  </button>
+                  <button class="move-button" data-move="2">
+                    <div class="move-icon">✌️</div>
+                    Scissors
+                  </button>
+                </div>
+
+                <div class="game-actions">
+                  <button id="joinGame" class="button primary-button">Join Game</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Game Info -->
+          <div class="rps-column">
+            <!-- Statistics -->
+            <div class="game-statistics">
+              <h3>My Game Stats</h3>
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-value" id="statTotal">0</div>
+                  <div class="stat-label">Total Games</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="statWins">0</div>
+                  <div class="stat-label">Wins</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="statLosses">0</div>
+                  <div class="stat-label">Losses</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="statDraws">0</div>
+                  <div class="stat-label">Draws</div>
                 </div>
               </div>
             </div>
 
-            <!-- Join Game Section -->
-            <div class="game-card" id="joinGameSection">
-              <h4>Join Existing Game</h4>
-              <p class="card-description">Enter a game ID and choose your move:</p>
+            <!-- Game History -->
+            <div class="game-history">
+              <h3>Game History</h3>
+              <div id="logs" class="logs-container">
+                <div class="log-entry">Welcome to Rock Paper Scissors! Choose your move to begin.</div>
+              </div>
+            </div>
 
-              <div class="game-actions">
-                <div class="form-group">
-                  <label for="gameId" class="label">Game ID</label>
-                  <div class="input-with-button">
-                    <input 
-                      type="number" 
-                      id="gameId" 
-                      class="input" 
-                      placeholder="Enter game ID to join" 
-                      min="0"
-                    >
+            <!-- Game Tables -->
+            <div class="game-tables">
+              <!-- Tab Navigation for Games -->
+              <div class="tab-container" role="tablist" aria-label="Game categories">
+                <button class="tab-button active" id="tabActive">Active Games</button>
+                <button class="tab-button" id="tabMyGames">My Games</button>
+              </div>
+              
+              <!-- Tab Content: Active Games -->
+              <div class="tab-content" id="activeGamesContent">
+                <div class="game-list">
+                  <h4>Active Games</h4>
+                  <div class="table-container">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Game ID</th>
+                          <th>Bet Amount</th>
+                          <th>Status</th>
+                          <th>Player 2 Move</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="gamesTableBody">
+                        <!-- Active games will be added here dynamically -->
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
               
-              <div class="move-options" id="joinGameMoves">
-                <button class="move-button" data-move="0">
-                  <div class="move-icon">✊</div>
-                  Rock
-                </button>
-                <button class="move-button" data-move="1">
-                  <div class="move-icon">✋</div>
-                  Paper
-                </button>
-                <button class="move-button" data-move="2">
-                  <div class="move-icon">✌️</div>
-                  Scissors
-                </button>
+              <!-- Tab Content: My Games (split into Started and Joined) -->
+              <div class="tab-content" id="myGamesContent" style="display:none;">
+                <div class="game-list">
+                  <h4>My Started Games</h4>
+                  <div class="table-container">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Game ID</th>
+                          <th>Bet Amount</th>
+                          <th>Status</th>
+                          <th>Player 2 Move</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="startedGamesTableBody">
+                        <!-- User's started games will be added here -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="game-list">
+                  <h4>My Joined Games</h4>
+                  <div class="table-container">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Game ID</th>
+                          <th>Bet Amount</th>
+                          <th>Status</th>
+                          <th>My Move</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="joinedGamesTableBody">
+                        <!-- User's joined games will be added here -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-
-              <div class="game-actions">
-                <button id="joinGame" class="button primary-button">Join Game</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Game History Section -->
-          <div class="game-history">
-            <h4>Game History</h4>
-            <div id="logs" class="logs-container">
-              <div class="log-entry">Welcome to Rock Paper Scissors! Choose your move to begin.</div>
-            </div>
-          </div>
-
-          <!-- Active Games Section -->
-          <div class="game-list">
-            <h4>Active Games</h4>
-            <div class="table-container">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Game ID</th>
-                    <th>Bet Amount</th>
-                    <th>Status</th>
-                    <th>Player 2 Move</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="gamesTableBody">
-                  <!-- Games will be added here dynamically -->
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
