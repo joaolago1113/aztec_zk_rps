@@ -1,4 +1,4 @@
-import { ShieldswapWalletSdk } from "@shieldswap/wallet-sdk";
+//import { ShieldswapWalletSdk } from "@shieldswap/wallet-sdk";
 import { PXEFactory } from './PXEFactory.js';
 import { CONFIG } from '../config.js';
 import { AsyncOrSync } from "ts-essentials";
@@ -7,8 +7,8 @@ import { PXE } from "@aztec/aztec.js";
 const WALLETCONNECT_PROJECT_ID = CONFIG.WALLETCONNECT_PROJECT_ID;
 
 export class WalletSdkFactory {
-  private static walletSdkInstance: ShieldswapWalletSdk | null = null;
-
+  //private static walletSdkInstance: ShieldswapWalletSdk | null = null;
+/*
   public static async getWalletSdkInstance(): Promise<ShieldswapWalletSdk> {
     if (!WalletSdkFactory.walletSdkInstance) {
       const pxe = await PXEFactory.getPXEInstance();
@@ -22,4 +22,5 @@ export class WalletSdkFactory {
     }
     return WalletSdkFactory.walletSdkInstance;
   }
+    */
 }

@@ -7,17 +7,15 @@ import { TokenContract, TokenContractArtifact } from '@aztec/noir-contracts.js/T
 
 export class RPSService {
     private contract!: RockPaperScissorsContract;
-    private tokenContract!: TokenContract;
+    private tokenContracts: Map<string, TokenContract> = new Map();
     private contractAddress!: AztecAddress;
     private accountService!: AccountService;
-    private tokenContractAddress!: AztecAddress;
     private pxe!: PXE;
     private contractInitialized: boolean = false;
-    private tokenContractInitialized: boolean = false;
     private TIMEOUT_BLOCKS: number | null = null;
     private userGames: Map<string, { started: string[], joined: string[] }> = new Map();
     private currentWalletAddress: string | null = null;
-
+    private initialized: boolean = false;
     constructor(pxe: PXE) {
       if (!pxe) {
         throw new Error('PXE object is required');
@@ -30,9 +28,15 @@ export class RPSService {
      * @param address - (Optional) The address of an existing RPS contract to load
      */
     async initialize(accountService: AccountService) {
+        this.accountService = accountService;
+
         const currentWallet = await accountService.getCurrentWallet();
         if (!currentWallet) {
             console.error('No wallet available. Please create an account first.');
+            return;
+        }
+
+        if(this.initialized){
             return;
         }
 
@@ -40,15 +44,14 @@ export class RPSService {
         this.currentWalletAddress = currentWallet.getAddress().toString();
         
         const contractAddress = AztecAddress.fromString(CONFIG.RPS_CONTRACT.ADDRESS);
-        const tokenContractAddress = AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.ADDRESS);
 
-        this.tokenContractAddress = tokenContractAddress;
         this.contractAddress = contractAddress;
-        this.accountService = accountService;
         
         await this.initializeContract(accountService);
         await this.initializeTokenContract(accountService);
         this.loadUserGames();
+
+        this.initialized = true;
     }
 
     private async initializeContract(accountService: AccountService) {
@@ -79,8 +82,7 @@ export class RPSService {
                 version: 1 as const,
                 salt: Fr.fromString(CONFIG.RPS_CONTRACT.DEPLOYMENT_SALT),
                 deployer: AztecAddress.fromString(CONFIG.RPS_CONTRACT.DEPLOYER),
-                publicKeys: PublicKeys.default(),
-                constructorArgs: [AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.ADDRESS)]
+                publicKeys: PublicKeys.default()
             };
 
             // Register with the wallet instead of PXE directly
@@ -101,72 +103,90 @@ export class RPSService {
 
     private async initializeTokenContract(accountService: AccountService) {
         const currentWallet = await accountService.getCurrentWallet();
-        try {
-            this.tokenContractInitialized = true;
+        if (!currentWallet) {
+            throw new Error('No wallet available to initialize token contracts');
+        }
 
-            if (!(await this.pxe.isContractPubliclyDeployed(this.tokenContractAddress))) {
-                throw new Error('Contract not deployed at the specified address');
+        for (const tokenConfig of CONFIG.TOKEN_CONTRACTS) {
+            try {
+                const tokenAddress = AztecAddress.fromString(tokenConfig.ADDRESS);
+                
+                if (!(await this.pxe.isContractPubliclyDeployed(tokenAddress))) {
+                    console.warn(`Token contract not deployed at address: ${tokenConfig.ADDRESS}`);
+                    continue;
+                }
+
+                // Register the contract class
+                await this.pxe.registerContractClass(TokenContractArtifact);
+
+                // Get constructor artifact
+                const constructorArtifact = TokenContractArtifact.functions.find(f => f.name === 'constructor');
+                if (!constructorArtifact) {
+                    throw new Error('Constructor not found in contract artifact');
+                }
+
+                const contractClass = getContractClassFromArtifact(TokenContractArtifact);
+                const contractClassId = contractClass.id;
+
+                // Create instance using the deployment parameters
+                const instance = {
+                    address: tokenAddress,
+                    initializationHash: Fr.fromString(tokenConfig.INIT_HASH),
+                    contractClassId: contractClassId,
+                    version: 1 as const,
+                    salt: Fr.fromString(tokenConfig.DEPLOYMENT_SALT),
+                    deployer: AztecAddress.fromString(tokenConfig.DEPLOYER),
+                    publicKeys: PublicKeys.default(),
+                    constructorArgs: [
+                        AztecAddress.fromString(tokenConfig.DEPLOYER),
+                        tokenConfig.NAME,
+                        tokenConfig.SYMBOL,
+                        tokenConfig.DECIMALS
+                    ]
+                };
+
+                // Register with the wallet
+                await currentWallet!.registerContract({
+                    artifact: TokenContractArtifact,
+                    instance
+                });
+
+                const tokenContract = await TokenContract.at(
+                    tokenAddress,
+                    currentWallet
+                );
+
+                // Store the contract instance in our map
+                this.tokenContracts.set(tokenConfig.ADDRESS, tokenContract);
+
+                console.log(`Initialized token contract for ${tokenConfig.NAME} (${tokenConfig.SYMBOL})`);
+            } catch (error) {
+                console.error(`Error initializing token contract ${tokenConfig.NAME}:`, error);
             }
-
-            // Register the contract class
-            await this.pxe.registerContractClass(TokenContractArtifact);
-
-            // Get constructor artifact
-            const constructorArtifact = TokenContractArtifact.functions.find(f => f.name === 'constructor');
-            if (!constructorArtifact) {
-                throw new Error('Constructor not found in contract artifact');
-            }
-
-            const contractClass = getContractClassFromArtifact(TokenContractArtifact);
-            const contractClassId = contractClass.id;
-            // Create instance using the deployment parameters
-            const instance = {
-                address: this.tokenContractAddress,
-                initializationHash: Fr.fromString(CONFIG.TOKEN_CONTRACT.INIT_HASH),
-                contractClassId: contractClassId,
-                version: 1 as const,
-                salt: Fr.fromString(CONFIG.TOKEN_CONTRACT.DEPLOYMENT_SALT),
-                deployer: AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.DEPLOYER),
-                publicKeys: PublicKeys.default(),
-                constructorArgs: [AztecAddress.fromString(CONFIG.TOKEN_CONTRACT.DEPLOYER), 
-                    (CONFIG.TOKEN_CONTRACT.NAME), 
-                    (CONFIG.TOKEN_CONTRACT.SYMBOL), 
-                    (CONFIG.TOKEN_CONTRACT.DECIMALS)]
-            };
-
-            // Register with the wallet instead of PXE directly
-            await currentWallet!.registerContract({
-                artifact: TokenContractArtifact,
-                instance
-            });
-
-            // Create contract interface
-            this.tokenContract = await TokenContract.at(this.tokenContractAddress, currentWallet!);
-
-            console.log('Token Contract initialized at:', this.tokenContract.address.toString());
-        } catch (error) {
-            console.error('Error initializing RPS contract:', error);
-            throw error;
         }
     }
 
-    async assignContract(){
+    async assignContract() {
+        if(!this.initialized){
+            await this.initialize(this.accountService);
+        }
+
         const currentWallet = await this.accountService.getCurrentWallet();
 
         if (!currentWallet) {
             console.log('No wallet available. Please create an account first.');
             return 0;
-        }else{
-            if(this.tokenContractInitialized){
-                this.tokenContract = await TokenContract.at(this.tokenContractAddress, currentWallet!);
-            }else{
-                await this.initializeTokenContract(this.accountService);
-            }
-
-            if(this.contractInitialized){
-                this.contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet!);
-            }else{
+        } else {
+            // Check and initialize RPS contract if needed
+            if (!this.contractInitialized) {
                 await this.initializeContract(this.accountService);
+            } else {
+                this.contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet!);
+            }
+            
+            // Check and initialize token contracts if needed
+            if (this.tokenContracts.size === 0) {
+                await this.initializeTokenContract(this.accountService);
             }
         }
 
@@ -177,6 +197,7 @@ export class RPSService {
      * Start a new game by committing player 1's move privately
      * @param playerMove - Player's move (0=Rock, 1=Paper, 2=Scissors)
      * @param betAmount - Amount to bet
+     * @param tokenAddress - Address of the token contract
      * @returns 1 if successful, 0 if failed
      * 
      * Flow:
@@ -184,7 +205,7 @@ export class RPSService {
      * 2. Their move is stored privately (not visible to player 2)
      * 3. A public game note is created for player 2 to join
      */
-    async startGame(playerMove: number, betAmount: string): Promise<Fr> {
+    async startGame(playerMove: number, betAmount: string, tokenAddress: string): Promise<Fr> {
         if ((await this.assignContract()) == 0) {
             console.log('No wallet available. Please create an account first.');
             return Fr.ZERO;
@@ -202,18 +223,17 @@ export class RPSService {
             const nonce = 0; 
             
             // First approve the transfer
-            const transferAction = this.tokenContract.methods.transfer_in_public(
-                currentWallet.getAddress(),  // from
-                this.contractAddress,        // to 
-                BigInt(betAmount),          // amount
-                nonce                       // Use random nonce instead of 0
+            const transferAction = this.tokenContracts.get(tokenAddress)?.methods.transfer_in_public(
+                currentWallet.getAddress(),
+                this.contractAddress,
+                BigInt(betAmount),
+                nonce
             );
 
-            // Add authorization witness
             await currentWallet.setPublicAuthWit(
                 {
                     caller: this.contractAddress,
-                    action: transferAction
+                    action: transferAction!
                 },
                 true
             ).send().wait();
@@ -224,17 +244,21 @@ export class RPSService {
             const tx = this.contract.methods.start_game(
                 game_id,
                 playerMove,
-                BigInt(betAmount)
+                BigInt(betAmount),
+                Fr.fromString(tokenAddress)
             );
 
             (await tx.send()).wait();
 
-            // Add game to user's started games
+            // Convert the Fr to a proper string using its bigint value.
+            const gameStr = game_id.toBigInt().toString();
+
+            // Add game to user's started games using the converted string.
             const userGames = this.userGames.get(this.currentWalletAddress) || { started: [], joined: [] };
-            userGames.started.push(game_id.toString());
+            userGames.started.push(gameStr);
             this.userGames.set(this.currentWalletAddress, userGames);
             
-            console.log('Added game to started games:', game_id.toString());
+            console.log('Added game to started games:', gameStr);
             this.saveUserGames();
             return game_id;
 
@@ -278,14 +302,28 @@ export class RPSService {
 
             const nonce = 0; 
 
+            const tokenContractKey = '0x'+Fr.fromString(gameNote.token_address.toString()).toBuffer().toString('hex');
+
+            
+
+            console.log("Looking for token contract with key:", tokenContractKey);
+            console.log("Available token contract keys:", Array.from(this.tokenContracts.keys()));
+            const tokenContract = this.tokenContracts.get(tokenContractKey);
+            if (!tokenContract) {
+                throw new Error(`Token contract not found for token address: ${tokenContractKey}`);
+            }
+
             // Create transfer action for matching bet
-            const transferAction = this.tokenContract.methods.transfer_in_public(
+            const transferAction = tokenContract!.methods.transfer_in_public(
                 this.contract.wallet.getAddress(),  // from
                 this.contractAddress,               // to 
                 BigInt(betMatch),                  // amount
                 nonce                              // Use random nonce
             );
 
+            console.log(currentWallet);
+
+            // Set public auth with the transfer action
             await currentWallet.setPublicAuthWit(
                 {
                     caller: this.contractAddress,
@@ -378,7 +416,39 @@ export class RPSService {
         };
     }
 
-    async getPublicBalance(): Promise<string> {
+    private tokenNameSymboltoString(value: bigint) {
+        const vals: number[] = Array.from(new Fr(value).toBuffer());
+        
+        let str = '';
+        for (let i = 0; i < vals.length; i++) {
+            if (vals[i] != 0) {
+            str += String.fromCharCode(Number(vals[i]));
+            }
+        }
+        return str;
+    };
+
+    async getTokenDetails(tokenAddress: string): Promise<{ name: string, symbol: string }> {
+        const tokenContract = this.tokenContracts.get(tokenAddress);
+        if (!tokenContract) {
+            throw new Error(`Token contract not found for address ${tokenAddress}`);
+        }
+
+        try {
+            let name = ((await tokenContract.methods.public_get_name().simulate()).value);
+            let symbol = ((await tokenContract.methods.public_get_symbol().simulate()).value);
+
+            name = this.tokenNameSymboltoString(name);
+            symbol = this.tokenNameSymboltoString(symbol);
+
+            return { name, symbol };
+        } catch (error) {
+            console.error('Error getting token details:', error);
+            throw error;
+        }
+    }
+
+    async getPublicBalance(tokenAddress: string): Promise<string> {
         if ((await this.assignContract()) == 0) {
             return '0';
         }
@@ -389,7 +459,12 @@ export class RPSService {
                 throw new Error('No wallet available');
             }
 
-            const balance = await this.tokenContract.methods.balance_of_public(
+            const tokenContract = this.tokenContracts.get(tokenAddress);
+            if (!tokenContract) {
+                throw new Error(`Token contract not found for address ${tokenAddress}`);
+            }
+
+            const balance = await tokenContract.methods.balance_of_public(
                 currentWallet.getAddress()
             ).simulate();
                 
@@ -455,10 +530,18 @@ export class RPSService {
         return await this.contract.methods.get_game_by_id(gameId).simulate();
     }
 
-    async getContractBalance(): Promise<string> {
-        if(!this.tokenContract) return '0';
+    async getContractBalance(tokenAddress: string): Promise<string> {
+        if ((await this.assignContract()) == 0) {
+            return '0';
+        }
+
         try {
-            const balance = await this.tokenContract.methods.balance_of_public(
+            const tokenContract = this.tokenContracts.get(tokenAddress);
+            if (!tokenContract) {
+                throw new Error(`Token contract not found for address ${tokenAddress}`);
+            }
+
+            const balance = await tokenContract.methods.balance_of_public(
                 this.contractAddress
             ).simulate();
             

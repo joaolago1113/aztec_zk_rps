@@ -6,8 +6,11 @@ import { UIManager } from './ui/UIManager.js';
 import { KeystoreFactory } from './factories/KeystoreFactory.js';
 import { WalletSdkFactory } from './factories/WalletSdkFactory.js';
 import { AccountService } from './services/AccountService.js';
+import { WalletConnectService } from './services/WalletConnectService.js';
+
 import { CONFIG } from './config.js';
-import { AztecAddress } from '@aztec/aztec.js';
+import { TokenService } from './services/TokenService.js';
+import { TransactionService } from './services/TransactionService.js';
 import { renderHeader } from './components/Header.js';
 import { renderFooter } from './components/Footer.js';
 
@@ -45,15 +48,28 @@ async function main() {
     alert('Failed to connect to the Aztec network. Please check your connection and try again.');
   }
 
+
+ // const walletSdk = await WalletSdkFactory.getWalletSdkInstance();
+
   uiManager = new UIManager();
   rpsService = new RPSService(pxe);
   const keystore = KeystoreFactory.getKeystore();  
   const accountService = new AccountService(pxe, keystore, uiManager);
 
+  const transactionService = new TransactionService(pxe, uiManager, accountService);
+  const tokenService = new TokenService(pxe, uiManager, accountService, transactionService);
+  const walletConnectService = new WalletConnectService(CONFIG.WALLETCONNECT_PROJECT_ID, CONFIG.SDK_METADATA, accountService, uiManager);
+
   await rpsService.initialize( accountService );
 
+  accountService.setTokenService(tokenService);
+
   uiManager.setRPSService(rpsService);
+  uiManager.setWalletConnectService(walletConnectService);
   uiManager.setAccountService(accountService);
+  uiManager.setTokenService(tokenService);
+  uiManager.setTransactionService(transactionService);
+
   uiManager.setupUI();
 
   // Render the header and footer components

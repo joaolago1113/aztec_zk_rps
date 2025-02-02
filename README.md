@@ -4,6 +4,8 @@
 
 Aztec Wallet UI is a comprehensive, feature-rich wallet application built on the Aztec Protocol. It provides users with secure account management, seamless token operations, robust transaction handling, and seamless integration with decentralized applications through [ShieldSwap](https://docs.shieldswap.org/).
 
+Additionally, it includes a decentralized **Rock Paper Scissors** game, allowing users to engage in secure, on-chain gameplay with betting functionality powered by Aztec's privacy-preserving technology.
+
 ## Table of Contents
 
 - [Features](#features)
@@ -13,6 +15,7 @@ Aztec Wallet UI is a comprehensive, feature-rich wallet application built on the
   - [Transaction Handling](#transaction-handling)
   - [User Interface](#user-interface)
   - [2FA Feature Through Account Abstraction](#2fa-feature-through-account-abstraction)
+  - [Rock Paper Scissors](#rock-paper-scissors)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -27,6 +30,18 @@ Aztec Wallet UI is a comprehensive, feature-rich wallet application built on the
 ## Features
 
 Aztec Wallet UI encompasses a wide range of features designed to provide users with a secure and efficient cryptocurrency management experience. Below is a detailed overview of each feature.
+
+### Rock Paper Scissors
+
+The Rock Paper Scissors page is a dynamic, decentralized game interface that leverages the Aztec protocol. With this feature, users can:
+- **Start a New Game:** Select a token, set a bet amount, and choose your move (Rock, Paper, or Scissors).
+- **Join Existing Games:** Enter an existing game ID and select your move to compete against another player.
+- **View Game Statistics & History:** Monitor active games, review past results (wins, losses, draws), and check detailed game stats.
+- **Timeout Functionality:** If a player fails to make a move within a designated time, the game can be timed out.
+
+The interface updates in real-time and provides an intuitive experience, ensuring secure gameplay backed by smart contracts.
+
+![rockpaperscrissors](https://github.com/user-attachments/assets/23135611-ad6a-4641-87dc-1f5c76940432)
 
 ### Account Management
 
@@ -203,6 +218,8 @@ Now your contracts are deployed and the app is ready to use! You can start the d
 
 
 mint_to_private to a wallet: aztec-wallet send mint_to_private --from accounts:my-wallet --contract-address contracts:testtoken --args accounts:my-wallet <WALLET_ADDRESS> 10000000 
+
+aztec-wallet send mint_to_public --from accounts:my-wallet --contract-address contracts:testtoken --args <WALLET_ADDRESS> 10000000 
 
 
 

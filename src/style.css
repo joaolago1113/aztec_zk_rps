@@ -111,14 +111,23 @@ nav {
 /* Add or update these styles */
 #tokensTable {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+#tokensTable th,
+#tokensTable td {
+  padding: 8px 16px;
+  vertical-align: middle;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  text-align: left;
 }
 
 #tokensTableBody td {
-  height: 90px;
   vertical-align: middle;
-  padding: 10px;
+  padding: 8px 16px;
 }
 
 #tokensTableBody tr {
@@ -519,8 +528,9 @@ footer nav a:hover {
 
 .table {
   width: 100%;
-  border-collapse: collapse;
-  background: var(--card);
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
 }
 
 .table thead {
@@ -530,16 +540,17 @@ footer nav a:hover {
 .table th {
   font-weight: 600;
   color: var(--muted-foreground);
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   white-space: nowrap;
   border-bottom: 1px solid var(--border);
 }
 
 .table td {
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
-  height: 72px;
+  height: auto;
+  min-height: 80px;
 }
 
 .game-id-cell {
@@ -580,13 +591,24 @@ footer nav a:hover {
 .balance-container {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  justify-content: center;
+  height: 100%;
+  padding: 0.5rem 0;
+  width: 100%;
 }
 
 .balance-item {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius);
+  transition: background-color 0.2s;
+}
+
+.balance-item:hover {
+  background: color-mix(in srgb, var(--background) 95%, var(--muted));
 }
 
 .balance-label {
@@ -601,6 +623,8 @@ footer nav a:hover {
 .actions-cell {
   display: flex;
   gap: 0.5rem;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .action-button {
@@ -703,6 +727,10 @@ footer nav a:hover {
 
 .token-list-card {
   overflow-x: auto;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
 }
 
 .create-mint-card {
@@ -719,47 +747,91 @@ footer nav a:hover {
 .table td {
   padding: 1rem;
   text-align: left;
-  border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+  word-wrap: break-word;
 }
 
 .table th {
   font-weight: 600;
-  background-color: var(--muted);
+  background-color: var(--card);
   color: var(--muted-foreground);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.table tbody tr:hover {
+  background-color: color-mix(in srgb, var(--card) 95%, var(--muted));
 }
 
 .token-info {
+  display: grid;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.token-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.2em;
+  color: var(--accent-foreground);
+}
+
+.token-details {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  height: 100%;
+  gap: 0.25rem;
 }
 
 .token-symbol {
   font-weight: bold;
-  font-size: 1.1em;
+  font-size: 1.2em;
+  color: var(--foreground);
 }
 
 .token-name {
-  font-size: 0.9em;
+  font-size: 1em;
   color: var(--muted-foreground);
 }
 
 .balance-container {
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
   justify-content: center;
   height: 100%;
+  padding: 0.5rem 0;
 }
 
 .balance-item {
   display: flex;
   justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius);
+  transition: background-color 0.2s;
+}
+
+.balance-item:hover {
+  background: color-mix(in srgb, var(--background) 95%, var(--muted));
 }
 
 .balance-label {
-  font-size: 0.9em;
+  font-size: 0.875rem;
   color: var(--muted-foreground);
 }
 
@@ -773,7 +845,6 @@ footer nav a:hover {
   flex-wrap: wrap;
   justify-content: flex-start;
   align-items: center;
-  height: 100%;
 }
 
 .action-button {
@@ -783,18 +854,19 @@ footer nav a:hover {
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
+  transition: all 0.2s ease;
   white-space: nowrap;
-  flex: 0 0 auto;
+  min-width: 80px;
+}
+
+.action-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(110%);
 }
 
 .send-button {
   background-color: var(--primary);
   color: var(--primary-foreground);
-}
-
-.send-button:hover {
-  background-color: hsl(200, 100%, 32%);
 }
 
 .shield-button {
@@ -827,12 +899,17 @@ footer nav a:hover {
   left: 50%;
   transform: translate(-50%, -50%);
   display: none;
-  width: 50px;
-  height: 50px;
-  border: 5px solid var(--muted);
-  border-top: 5px solid var(--primary);
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+  position: relative;
+  opacity: 0.8;
 }
 
 @keyframes spin {
@@ -969,130 +1046,6 @@ footer nav a:hover {
   color: var(--muted-foreground);
 }
 
-.pending-shields-list {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-}
-
-.pending-shield-note-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.pending-shield-note-item:last-child {
-  border-bottom: none;
-}
-
-.pending-shield-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.pending-shield-amount {
-  font-weight: 600;
-}
-
-.pending-shield-index {
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
-}
-
-.redeem-button {
-  padding: 0.5rem 1rem;
-  background-color: var(--primary);
-  color: var(--primary-foreground);
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.redeem-button:hover {
-  background-color: var(--primary-hover);
-}
-
-.redeem-button:disabled {
-  background-color: var(--muted);
-  cursor: not-allowed;
-}
-
-.no-pending-shields {
-  padding: 1rem;
-  text-align: center;
-  color: var(--muted-foreground);
-}
-
-.error-message {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  background-color: var(--destructive);
-  color: var(--destructive-foreground);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
-
-.pending-shield-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.pending-shield-token {
-  font-weight: 600;
-}
-
-.pending-shield-amount {
-  font-size: 0.9em;
-  color: var(--muted-foreground);
-}
-
-.pending-shields-list {
-  margin-top: 1rem;
-  padding: 0;
-}
-
-.token-pending-shields-container {
-  background-color: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 1rem;
-  overflow: hidden;
-}
-
-.token-pending-shields-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background-color: var(--muted);
-}
-
-.token-pending-shields-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.pending-shields-count {
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
-}
-
-.pending-shields-list {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-}
-
 .pending-shield-note-item {
   display: flex;
   justify-content: space-between;
@@ -1166,6 +1119,11 @@ footer nav a:hover {
   font-size: 0.75rem;
   color: var(--muted-foreground);
   margin-right: 0.5rem;
+  max-width: 150px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .copy-address-button {
@@ -1484,13 +1442,6 @@ footer nav a:hover {
   margin-bottom: 0.5rem;
 }
 
-.game-history {
-  background: var(--card);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  padding: 1.5rem;
-}
-
 .logs-container {
   max-height: 200px;
   overflow-y: auto;
@@ -1518,7 +1469,7 @@ footer nav a:hover {
 }
 
 .game-actions {
-  display: flex;
+  display: inline-grid;
   gap: 0.5rem;
   align-items: center;
 }
@@ -1643,12 +1594,24 @@ footer nav a:hover {
 }
 
 .loading-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid var(--muted);
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
   border-radius: 50%;
-  border-top-color: var(--accent);
   animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+  position: relative;
+  opacity: 0.8;
+}
+
+.loading-spinner.small {
+  width: 12px;
+  height: 12px;
+  border-width: 1px;
+  margin-right: 4px;
 }
 
 .loading-container span {
@@ -1850,12 +1813,15 @@ td.loading-cell {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
+  table-layout: fixed; /* Ensures headers and cells have consistent widths */
 }
 
 .table th, .table td {
-  padding: 0.75rem;
+  padding: 1rem;
   text-align: left;
+  vertical-align: middle;
   border-bottom: 1px solid var(--border);
+  word-wrap: break-word;
 }
 
 .table thead {
@@ -2006,7 +1972,6 @@ td.loading-cell {
   padding: 1.5rem;
   border-radius: var(--radius);
   max-height: 300px;
-  overflow-y: auto;
 }
 
 /* Game Tables */
@@ -2027,4 +1992,161 @@ td.loading-cell {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+  position: relative;
+  opacity: 0.8;
+}
+
+.loading-spinner.small {
+  width: 12px;
+  height: 12px;
+  border-width: 1px;
+  margin-right: 4px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Make sure the container has enough space and proper alignment */
+.balance-row {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+/* Ensure the spinner is centered in its space */
+.balance-row .loading-spinner {
+  margin: 0 auto;
+}
+
+/* Column widths */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+  width: 30%;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  width: 40%;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 30%;
+}
+
+/* Updated tokens table container to handle overflows */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  position: relative; /* ensures proper positioning */
+}
+
+/* Updated tokens table styles */
+#tokensTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* forces even column widths */
+}
+
+/* Updated header and cell styles for tokens table */
+#tokensTable th,
+#tokensTable td {
+  padding: 8px 16px;
+  vertical-align: middle;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal; /* allows text to wrap */
+  text-align: left;
+}
+
+/* Remove fixed cell height in tbody to allow natural height */
+#tokensTableBody td {
+  /* Removed fixed height: 90px; */
+  vertical-align: middle;
+  padding: 8px 16px;
+}
+
+/* Consistent row borders */
+#tokensTableBody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+#tokensTableBody tr:last-child {
+  border-bottom: none;
+}
+
+/* Limit token address width and add ellipsis */
+.token-address {
+  max-width: 150px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Active Games table column widths override */
+#activeGamesContent .table th:nth-child(1),
+#activeGamesContent .table td:nth-child(1) {
+  width: 20%;
+}
+
+#activeGamesContent .table th:nth-child(2),
+#activeGamesContent .table td:nth-child(2) {
+  width: 20%;
+}
+
+#activeGamesContent .table th:nth-child(3),
+#activeGamesContent .table td:nth-child(3) {
+  width: 15%;
+}
+
+#activeGamesContent .table th:nth-child(4),
+#activeGamesContent .table td:nth-child(4) {
+  width: 20%;
+}
+
+#activeGamesContent .table th:nth-child(5),
+#activeGamesContent .table td:nth-child(5) {
+  width: 25%;
+}
+
+/* My Games tables column widths override */
+#myGamesContent .table th:nth-child(1),
+#myGamesContent .table td:nth-child(1) {
+  width: 20%;
+}
+
+#myGamesContent .table th:nth-child(2),
+#myGamesContent .table td:nth-child(2) {
+  width: 20%;
+}
+
+#myGamesContent .table th:nth-child(3),
+#myGamesContent .table td:nth-child(3) {
+  width: 15%;
+}
+
+#myGamesContent .table th:nth-child(4),
+#myGamesContent .table td:nth-child(4) {
+  width: 20%;
+}
+
+#myGamesContent .table th:nth-child(5),
+#myGamesContent .table td:nth-child(5) {
+  width: 25%;
 }

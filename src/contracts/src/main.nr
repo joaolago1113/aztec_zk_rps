@@ -29,8 +29,6 @@ contract RockPaperScissors {
     /// The contract's main storage structure.
     #[storage]
     struct Storage<Context> {
-        /// The L2 token used for bets
-        token_address: PublicImmutable<AztecAddress, Context>,
         games_length: PublicMutable<Field, Context>,
 
         plays: Map<Field, PrivateMutable<ValueNote, Context>, Context>,
@@ -43,9 +41,8 @@ contract RockPaperScissors {
 
     #[public]
     #[initializer]
-    fn constructor(owner: AztecAddress, token_addr: AztecAddress, timeout_blocks: Field) {
+    fn constructor(owner: AztecAddress, timeout_blocks: Field) {
         storage.owner.initialize(owner);
-        storage.token_address.initialize(token_addr);
         storage.games_length.write(0);
         storage.timeout_blocks.write(timeout_blocks);
     }
@@ -60,7 +57,8 @@ contract RockPaperScissors {
     fn start_game(
         game_id: Field,
         player1_move: Field,
-        bet_amount: Field
+        bet_amount: Field,
+        token_addr: Field
     ) {
         assert(player1_move as u8 <= 2, "Invalid move!");
 
@@ -75,7 +73,8 @@ contract RockPaperScissors {
         // Create and insert game note
         let mut game_note = GameNote::new(
             game_id,
-            bet_amount
+            bet_amount,
+            token_addr
         );
 
         RockPaperScissors::at(context.this_address())
@@ -94,9 +93,7 @@ contract RockPaperScissors {
 
         storage.games.at(game_note.id).write(game_note);
 
-        let token_address = storage.token_address.read();
-
-        Token::at(token_address)
+        Token::at(AztecAddress { inner: game_note.token_address })
             .transfer_in_public(sender, context.this_address(), game_note.bet_amount, 0)
             .call(&mut context);
     }
@@ -107,20 +104,19 @@ contract RockPaperScissors {
         player2_move: Field,
         bet_match: Field
     ) {
-        //assert(storage.plays.at(game_id).is_some(), "Game not found");  
-        let token_addr = storage.token_address.read();
+        // Retrieve token address from the game note
+        let mut game_note = storage.games.at(game_id).read();
+        let token_addr = AztecAddress { inner: game_note.token_address };
 
         Token::at(token_addr)
             .transfer_in_public(context.msg_sender(), context.this_address(), bet_match, 0)
             .call(&mut context);
 
-        let mut game_note = storage.games.at(game_id).read();
-
         game_note.player2_move = player2_move;
         game_note.player2_address = context.msg_sender().to_field();
         game_note.blocktime = context.block_number();
 
-        storage.games.at(game_id).write(game_note);   
+        storage.games.at(game_id).write(game_note);
     }
 
     #[private]
@@ -139,8 +135,8 @@ contract RockPaperScissors {
         let mut game_note = storage.games.at(game_id).read();
         assert(!game_note.is_completed, "Game already completed");
 
-        // Get token address
-        let token_addr = storage.token_address.read();
+        // Retrieve token address from the game note
+        let token_addr = AztecAddress { inner: game_note.token_address };
         let player2_address = game_note.player2_address;
 
         // Compare moves and determine winner
@@ -207,8 +203,8 @@ contract RockPaperScissors {
         let timeout_blocks = storage.timeout_blocks.read();
         assert(blocks_passed as u32 > timeout_blocks as u32, "Not enough blocks have passed for timeout");
 
-        // Get token address
-        let token_addr = storage.token_address.read();
+        // Retrieve token address from the game note
+        let token_addr = AztecAddress { inner: game_note.token_address };
         let bet_amount = game_note.bet_amount;
         
         // Award both bets to player 2 since player 1 timed out

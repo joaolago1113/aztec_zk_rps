@@ -1,7 +1,10 @@
-import { RPSService } from './RPSService.js';
+import { PXE } from '@aztec/aztec.js';
+import { UIManager } from '../ui/UIManager.js';
+import { AccountService } from './AccountService.js';
+import { KeystoreFactory } from '../factories/KeystoreFactory.js';
 
 export interface Transaction {
-  action: 'start_game' | 'join_game' | 'reveal_game';
+  action: 'mint' | 'shield' | 'unshield' | 'transfer' | 'redeem';
   token: string;
   amount: string;
   from?: string;
@@ -13,14 +16,28 @@ export interface Transaction {
 
 export class TransactionService {
   constructor(
-    private rpsService: RPSService
+    private pxe: PXE,
+    private uiManager: UIManager,
+    private accountService: AccountService
   ) {}
 
   async fetchTransactions(): Promise<Transaction[]> {
-    return [];
+    const currentWallet = await this.accountService.getCurrentWallet();
+    if (!currentWallet) {
+      throw new Error('No wallet available. Please create an account first.');
+    }
+
+    const keystore = KeystoreFactory.getKeystore();
+    return keystore.getTransactions(currentWallet.getAddress());
   }
 
   async saveTransaction(transaction: Transaction) {
-    // Implement saving RPS-specific transactions if needed
+    const currentWallet = await this.accountService.getCurrentWallet();
+    if (!currentWallet) {
+      throw new Error('No wallet available. Please create an account first.');
+    }
+
+    const keystore = KeystoreFactory.getKeystore();
+    await keystore.saveTransaction(currentWallet.getAddress(), transaction);
   }
 }

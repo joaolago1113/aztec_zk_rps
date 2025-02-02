@@ -30,7 +30,14 @@
               <!-- Start Game Section -->
               <div class="game-card">
                 <h3>Start New Game</h3>
-                <p class="card-description">Choose your move and set your bet amount:</p>
+                <p class="card-description">Choose your move, token and set your bet amount:</p>
+                
+                <div class="form-group">
+                  <label for="tokenSelect" class="label">Choose Token</label>
+                  <select id="tokenSelect" class="input">
+                    <!-- Options will be populated dynamically from CONFIG -->
+                  </select>
+                </div>
                 
                 <div class="move-options" id="startGameMoves">
                   <button class="move-button" data-move="0">

@@ -34,8 +34,10 @@ import {
   type Wallet,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json' assert { type: "json" };
+import RockPaperScissorsContractArtifactJson from '../../target/rock_paper_scissors-RockPaperScissors.json' assert { type: 'json' };
 export const RockPaperScissorsContractArtifact = loadContractArtifact(RockPaperScissorsContractArtifactJson as NoirCompiledContract);
+
+
 
 /**
  * Type-safe interface for contract RockPaperScissors;
@@ -68,14 +70,14 @@ export class RockPaperScissorsContract extends ContractBase {
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, owner: AztecAddressLike, token_addr: AztecAddressLike, timeout_blocks: FieldLike) {
+  public static deploy(wallet: Wallet, owner: AztecAddressLike, timeout_blocks: FieldLike) {
     return new DeployMethod<RockPaperScissorsContract>(PublicKeys.default(), wallet, RockPaperScissorsContractArtifact, RockPaperScissorsContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, owner: AztecAddressLike, token_addr: AztecAddressLike, timeout_blocks: FieldLike) {
+  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, owner: AztecAddressLike, timeout_blocks: FieldLike) {
     return new DeployMethod<RockPaperScissorsContract>(publicKeys, wallet, RockPaperScissorsContractArtifact, RockPaperScissorsContract.at, Array.from(arguments).slice(2));
   }
 
@@ -106,30 +108,27 @@ export class RockPaperScissorsContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'token_address' | 'games_length' | 'plays' | 'games' | 'game_ids' | 'owner' | 'timeout_blocks'> {
+  public static get storage(): ContractStorageLayout<'games_length' | 'plays' | 'games' | 'game_ids' | 'owner' | 'timeout_blocks'> {
       return {
-        token_address: {
+        games_length: {
       slot: new Fr(1n),
     },
-games_length: {
+plays: {
       slot: new Fr(2n),
     },
-plays: {
+games: {
       slot: new Fr(3n),
     },
-games: {
+game_ids: {
       slot: new Fr(4n),
     },
-game_ids: {
+owner: {
       slot: new Fr(5n),
     },
-owner: {
-      slot: new Fr(6n),
-    },
 timeout_blocks: {
-      slot: new Fr(7n),
+      slot: new Fr(6n),
     }
-      } as ContractStorageLayout<'token_address' | 'games_length' | 'plays' | 'games' | 'game_ids' | 'owner' | 'timeout_blocks'>;
+      } as ContractStorageLayout<'games_length' | 'plays' | 'games' | 'game_ids' | 'owner' | 'timeout_blocks'>;
     }
     
 
@@ -151,8 +150,8 @@ ValueNote: {
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, serialized_note: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, serialized_note: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** constructor(owner: struct, token_addr: struct, timeout_blocks: field) */
-    constructor: ((owner: AztecAddressLike, token_addr: AztecAddressLike, timeout_blocks: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** constructor(owner: struct, timeout_blocks: field) */
+    constructor: ((owner: AztecAddressLike, timeout_blocks: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_game_by_id(game_id: field) */
     get_game_by_id: ((game_id: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
@@ -178,8 +177,8 @@ ValueNote: {
     /** set_timeout_blocks(new_timeout: field) */
     set_timeout_blocks: ((new_timeout: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** start_game(game_id: field, player1_move: field, bet_amount: field) */
-    start_game: ((game_id: FieldLike, player1_move: FieldLike, bet_amount: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** start_game(game_id: field, player1_move: field, bet_amount: field, token_addr: field) */
+    start_game: ((game_id: FieldLike, player1_move: FieldLike, bet_amount: FieldLike, token_addr: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** sync_notes() */
     sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

@@ -3,6 +3,7 @@ declare global {
   interface Window {
     resolveGame: (gameId: string) => Promise<void>;
     timeoutGame: (gameId: string) => Promise<void>;
+    copyGameIdHandler: (gameId: string) => void;
   }
 }
 
@@ -74,8 +75,6 @@ export class UIManager {
     const hash = window.location.hash.slice(1) || 'accounts';
     console.log('Page changed to:', hash);
     
-    await this.initializeAccountInfo();
-    
     switch (hash) {
       case 'accounts':
         await this.updateAccountsPage();
@@ -113,6 +112,7 @@ export class UIManager {
     if (currentWallet) {
       try {
         await this.tokenService.updateBalancesForNewAccount(currentWallet);
+        // Import all configured tokens on service initialization
 
         /*
         // Fetch pending shields for each token
@@ -1656,26 +1656,57 @@ export class UIManager {
   }
 
   private async setupRPSPage() {
-    this.setupMoveSelection();
-    this.setupGameActions(); // This is already here
-    await this.updateRPSBalance();
-    await this.updateGamesList();
-    await this.updateUserGamesTables();
+    await this.rpsService.initialize(this.accountService);
     this.setupTabs();
+    this.setupGameActions();
+    this.setupMoveSelection();
+    this.initializeTokenSelect();
+    
+    // Load both Active Games and My Games concurrently
+    Promise.all([
+      this.updateGamesList(),
+      this.updateUserGamesTables()
+    ]);
+    
+    // Expose a global copy handler for game IDs (used in inline onclick)
+    window.copyGameIdHandler = (gameId: string) => {
+      this.copyGameId(gameId);
+    };
     
     // Add global handler for timeout button
     window.timeoutGame = async (gameId: string) => {
       try {
         await this.rpsService.timeoutGame(gameId);
         this.addRPSLog(`Successfully timed out game ${this.formatGameId(gameId)}!`);
-        await this.updateGamesList();
+        // Optionally update Active Games here if needed
+        // this.updateGamesList();
       } catch (err: any) {
         this.addRPSLog(`Error timing out game: ${err?.message || err}`);
       }
     };
-
+    
     // Start periodic timeout checks
     setInterval(() => this.updateGameTimeouts(), 10000); // Check every 10 seconds
+    
+    this.updateRPSBalance();
+  }
+
+  private initializeTokenSelect() {
+    const tokenSelect = document.getElementById('tokenSelect') as HTMLSelectElement;
+    if (tokenSelect) {
+      tokenSelect.innerHTML = ''; // Clear any previous options
+      CONFIG.TOKEN_CONTRACTS.forEach(token => {
+        tokenSelect.innerHTML += `
+          <option value="${token.ADDRESS}">
+            ${token.NAME} (${token.SYMBOL})
+          </option>`;
+      });
+      
+      // Update balances when token selection changes
+      tokenSelect.addEventListener('change', () => {
+        this.updateRPSBalance();
+      });
+    }
   }
 
   private async updateUserGamesTables() {
@@ -1697,7 +1728,7 @@ export class UIManager {
           const row = document.createElement('tr');
           const result = this.getGameResult(game);
           const showResolve = !game.isCompleted && game.player2Move !== '0';
-          
+
           row.innerHTML = `
             <td>${this.formatGameId(game.id)}</td>
             <td>${game.betAmount}</td>
@@ -1805,18 +1836,32 @@ export class UIManager {
   }
 
   private async updateRPSBalance() {
-    const userBalanceSpan = document.getElementById('tokenBalance');
-    const contractBalanceSpan = document.getElementById('contractBalance');
-    
-    if (userBalanceSpan) {
-        const balance = await this.rpsService.getPublicBalance();
-
-        userBalanceSpan.textContent = balance;
-    }
-    
-    if (contractBalanceSpan) {
-        const contractBalance = await this.rpsService.getContractBalance();
-        contractBalanceSpan.textContent = contractBalance;
+    const balanceElement = document.getElementById('tokenBalance');
+    const contractBalanceElement = document.getElementById('contractBalance');
+    const tokenSelect = document.getElementById('tokenSelect') as HTMLSelectElement;
+    if (balanceElement) {
+      try {
+        // Show loading indicators
+        balanceElement.innerHTML = '<div class="loading-spinner small"></div>';
+        if (contractBalanceElement) {
+          contractBalanceElement.innerHTML = '<div class="loading-spinner small"></div>';
+        }
+        
+        const tokenDetails = await this.rpsService.getTokenDetails(tokenSelect.value);
+        const balance = await this.rpsService.getPublicBalance(tokenSelect.value);
+        balanceElement.textContent = `${balance} ${tokenDetails.symbol}`;
+        
+        if (contractBalanceElement) {
+          const contractBalance = await this.rpsService.getContractBalance(tokenSelect.value);
+          contractBalanceElement.textContent = `${contractBalance} ${tokenDetails.symbol}`;
+        }
+      } catch (error) {
+        console.error('Error updating balance:', error);
+        balanceElement.textContent = 'Error loading balance';
+        if (contractBalanceElement) {
+          contractBalanceElement.textContent = 'Error loading balance';
+        }
+      }
     }
   }
 
@@ -1893,8 +1938,20 @@ export class UIManager {
   }
 
   private formatGameId(gameId: string): string {
+    // Abbreviate long game ids. E.g., "18751008177878127295679387853841789877365493046757546476222158466894686461448"
+    // becomes "1875...1448"
     if (gameId.length <= 8) return gameId;
     return `${gameId.slice(0, 4)}...${gameId.slice(-4)}`;
+  }
+
+  private copyGameId(gameId: string): void {
+    navigator.clipboard.writeText(gameId)
+      .then(() => {
+         this.addRPSLog(`Copied game ID: ${gameId}`);
+      })
+      .catch(err => {
+         console.error('Error copying game ID:', err);
+      });
   }
 
   private async updateGamesList() {
@@ -1916,32 +1973,24 @@ export class UIManager {
 
         // Get games count
         const count = await this.rpsService.getGamesCount();
-
+        
         // Clear loading message (so we can insert rows)
         gamesTableBody.innerHTML = '';
-
+        
         // Add loading indicator at bottom
         const loadingRow = document.createElement('tr');
         loadingRow.className = 'loading-row';
         loadingRow.innerHTML = `
             <td colspan="5" class="loading-cell subtle">
                 <div class="loading-container">
-                    <div class="loading-spinner small"></div>
                     <span>Loading more games...</span>
                 </div>
             </td>
         `;
         gamesTableBody.appendChild(loadingRow);
 
-        // Load games one by one in a non-blocking way
+        // Load games one by one in a non-blocking way.
         for (let i = 0; i < count; i++) {
-            // If the Active Games tab is no longer visible, break out so that we can yield to the user
-            const activeContent = document.getElementById('activeGamesContent');
-            if (activeContent && activeContent.style.display !== 'block') {
-                console.log('Active Games tab hidden; stopping further loading.');
-                break;
-            }
-
             try {
                 const gameId = await this.rpsService.getGameIdByIndex(i);
                 const gameNote = await this.rpsService.getGameById(gameId);
@@ -2004,20 +2053,18 @@ export class UIManager {
       <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
       <td>${game.player2Move === '0' ? 'Waiting' : this.getMoveText(game.player2Move)}</td>
       <td>
-        ${game.isCompleted ? '-' : `
-          <button onclick="resolveGame('${game.id}')" class="resolve-button">
-            Resolve
-          </button>
-        `}
+        ${game.isCompleted 
+            ? '-' 
+            : (game.player2Move === '0' 
+                ? '-' 
+                : `<button onclick="resolveGame('${game.id}')" class="resolve-button">
+                       Resolve
+                    </button>`)}
       </td>
     `;
 
-    // Add to beginning of table
-    if (gamesTableBody.firstChild) {
-      gamesTableBody.insertBefore(row, gamesTableBody.firstChild);
-    } else {
-      gamesTableBody.appendChild(row);
-    }
+    // Use prepend to insert the new row at the start.
+    gamesTableBody.prepend(row);
   }
 
   private async updateGameTimeouts() {
@@ -2072,44 +2119,47 @@ export class UIManager {
   private setupGameActions() {
     const startGameButton = document.getElementById('startGame');
     const joinGameButton = document.getElementById('joinGame');
-
+  
     if (startGameButton) {
-      startGameButton.addEventListener('click', async () => {
+      // Use onclick to override any previously bound handler
+      startGameButton.onclick = async () => {
         const betAmountInput = document.getElementById('betAmount') as HTMLInputElement;
         const selectedMove = document.querySelector('#startGameMoves .move-button.selected');
+        const tokenSelect = document.getElementById('tokenSelect') as HTMLSelectElement;
         
-        if (!betAmountInput?.value || !selectedMove?.getAttribute('data-move')) {
-          this.addRPSLog('Please select a move and enter a bet amount');
+        if (!betAmountInput?.value || !selectedMove?.getAttribute('data-move') || !tokenSelect?.value) {
+          this.addRPSLog('Please select a move, token and enter a bet amount');
           return;
         }
-
+  
         try {
           startGameButton.classList.add('loading');
           startGameButton.setAttribute('disabled', 'true');
-
+  
           // Check balance before attempting to start game
-          const balance = await this.rpsService.getPublicBalance();
+          const balance = await this.rpsService.getPublicBalance(tokenSelect.value);
           const betAmount = parseFloat(betAmountInput.value);
           
           if (BigInt(balance) < BigInt(betAmount)) {
             this.addRPSLog(`Insufficient balance! You need ${betAmount} tokens but only have ${balance}`);
             return;
           }
-
+  
           const gameId = await this.rpsService.startGame(
             parseInt(selectedMove.getAttribute('data-move')!),
-            betAmountInput.value
+            betAmountInput.value,
+            tokenSelect.value
           );
-
+  
           // Add check for Fr.ZERO
           if (gameId === Fr.ZERO) {
             this.addRPSLog('Failed to start game. Please check your wallet and try again.');
             return;
           }
-
-          this.addRPSLog(`Game started successfully! Game ID: ${gameId.toString()}`);
+  
+          this.addRPSLog(`Game started successfully! Game ID: ${gameId.toBigInt().toString()}`);
           
-          // Immediately add the new game to the table
+          // Immediately add the new game to the Active Games table
           this.addGameToTable({
             id: gameId.toBigInt(),
             betAmount: betAmountInput.value,
@@ -2117,13 +2167,14 @@ export class UIManager {
             player2Move: '0',
             blocktime: '0'
           });
-
+  
+          // Also update the My Games tables dynamically
+          await this.updateUserGamesTables();
+  
+          // Finally, update the balance
           await this.updateRPSBalance();
         } catch (err: any) {
-          // Improved error handling
           let errorMessage = `Error starting game: ${err?.message || err}`;
-          
-          // Check for specific JSON-RPC error
           if (err?.message?.includes('JSON-RPC PROPAGATED')) {
             const errorParts = err.message.split('\n');
             if (errorParts.length > 0) {
@@ -2133,18 +2184,17 @@ export class UIManager {
               }
             }
           }
-          
           this.addRPSLog(errorMessage);
           console.error('Game start error:', err);
         } finally {
           startGameButton.classList.remove('loading');
           startGameButton.removeAttribute('disabled');
         }
-      });
+      };
     }
-
+  
     if (joinGameButton) {
-      joinGameButton.addEventListener('click', async () => {
+      joinGameButton.onclick = async () => {
         const gameIdInput = document.getElementById('gameId') as HTMLInputElement;
         const selectedMove = document.querySelector('#joinGameMoves .move-button.selected');
         
@@ -2176,7 +2226,7 @@ export class UIManager {
         } finally {
           joinGameButton.classList.remove('loading');
         }
-      });
+      };
     }
   }
 
@@ -2198,9 +2248,9 @@ export class UIManager {
     const myGamesBtn = document.getElementById('tabMyGames');
     const activeContent = document.getElementById('activeGamesContent');
     const myGamesContent = document.getElementById('myGamesContent');
-
+  
     if (!activeBtn || !myGamesBtn || !activeContent || !myGamesContent) return;
-
+  
     if (tab === 'active') {
       activeBtn.classList.add('active');
       myGamesBtn.classList.remove('active');
@@ -2212,5 +2262,6 @@ export class UIManager {
       activeContent.style.display = 'none';
       myGamesContent.style.display = 'block';
     }
+    // No reloading here—cached content will be shown immediately
   }
 }

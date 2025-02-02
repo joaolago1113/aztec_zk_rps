@@ -21,7 +21,6 @@ export class TokenService {
   private pendingShields: { [key: string]: Fr[] } = {};
   private cc: CheatCodes | null = null;
   private ccInitialized: Promise<void> | null = null;
-  private initialTestAccountsSetup: Promise<void> | null = null;
 
   constructor(
     private pxe: PXE,
@@ -36,23 +35,7 @@ export class TokenService {
     this.loadPendingShieldsFromLocalStorage();
 
     this.ccInitialized = this.initializeCheatCodes();
-    this.initialTestAccountsSetup = this.setupInitialTestAccounts();
-  }
 
-  private async setupInitialTestAccounts(): Promise<void> {
-    try {
-      const randAccount = await getInitialTestAccountsWallets(this.pxe);
-
-      const address = randAccount[0].getAddress();
-      const registeredAccount = await this.pxe.getRegisteredAccounts().then(accounts => accounts.find(account => account.address === address));
-
-      if(!registeredAccount)
-        await deployInitialTestAccounts(this.pxe);
-      else
-        console.log('Initial test accounts already set up');
-    } catch (deployError) {
-      console.error('Error deploying initial test accounts:', deployError);
-    }
   }
 
 
@@ -86,7 +69,6 @@ export class TokenService {
   private saveTokensToLocalStorage() {
 
      console.log("Saving tokens to localStorage:", this.tokens);
-
 
     localStorage.setItem('tokens', JSON.stringify(this.tokens));
     localStorage.setItem('registeredContracts', JSON.stringify(Array.from(this.registeredContracts.entries())));
@@ -210,7 +192,6 @@ export class TokenService {
   }
 
   async updateTable() {
-    await this.setupInitialTestAccounts();
 
     if (this.updateTableDebounceTimer) {
       clearTimeout(this.updateTableDebounceTimer);
@@ -239,10 +220,6 @@ export class TokenService {
       this.uiManager.showLoadingSpinner();
 
       try {
-        // Ensure initial test accounts are set up before updating the table
-        if (this.initialTestAccountsSetup) {
-          await this.initialTestAccountsSetup;
-        }
         
         this.ensureUniqueTokens(); // Add this line to ensure unique tokens before processing
         console.log("Processing tokens:", this.tokens);
@@ -260,12 +237,8 @@ export class TokenService {
 
             const addressWallet = this.currentWallet!.getAddress();
 
-            const randAccount = await getInitialTestAccountsWallets(this.pxe);
-
-            console.log("randAccount", randAccount[0].getAddress().toString());
-
-            let callPrivateBalance: ContractFunctionInteraction = await tokenContract.withWallet(randAccount[0]).methods.balance_of_private(addressWallet);
-            let callPublicBalance: ContractFunctionInteraction = await tokenContract.withWallet(randAccount[0]).methods.balance_of_public(addressWallet);
+            let callPrivateBalance: ContractFunctionInteraction = await tokenContract.withWallet(this.currentWallet!).methods.balance_of_private(addressWallet);
+            let callPublicBalance: ContractFunctionInteraction = await tokenContract.withWallet(this.currentWallet!).methods.balance_of_public(addressWallet);
 
             try {
               console.log("simulating public balance");
@@ -330,6 +303,7 @@ export class TokenService {
   // Add this new method
   async updateBalancesForNewAccount(wallet: AccountWallet) {
     this.currentWallet = wallet;
+    await this.importConfiguredTokensOnStart();
     await this.updateTable();
   }
 
@@ -380,17 +354,13 @@ export class TokenService {
       throw new Error("No wallet set. Please call setupTokens first.");
     }
 
-    await this.setupInitialTestAccounts();
-
-    const randAccount = await getInitialTestAccountsWallets(this.pxe);
-
     const balances: { [symbol: string]: { privateBalance: bigint; publicBalance: bigint } } = {};
     for (const token of this.tokens) {
       const tokenAddress = await this.getTokenAddress(token);
       const tokenContract = await TokenContract.at(tokenAddress, this.currentWallet);
 
-      const privateBalance = (await tokenContract.withWallet(randAccount[0]).methods.balance_of_private(address).simulate());
-      const publicBalance = (await tokenContract.withWallet(randAccount[0]).methods.balance_of_public(address).simulate());
+      const privateBalance = (await tokenContract.withWallet(this.currentWallet).methods.balance_of_private(address).simulate());
+      const publicBalance = (await tokenContract.withWallet(this.currentWallet).methods.balance_of_public(address).simulate());
 
       balances[token.symbol] = { privateBalance, publicBalance };
     }
@@ -458,11 +428,9 @@ export class TokenService {
 
 
       const tokenContract = await TokenContract.at(AztecAddress.fromString(tokenAddress), this.currentWallet);
-      await this.setupInitialTestAccounts();
 
-      const randAccount = await getInitialTestAccountsWallets(this.pxe);
-      const simluatedName = (await tokenContract.withWallet(randAccount[0]).methods.public_get_name().simulate()).value;
-      const simluatedSymbol = (await tokenContract.withWallet(randAccount[0]).methods.public_get_symbol().simulate()).value;
+      const simluatedName = (await tokenContract.withWallet(this.currentWallet).methods.public_get_name().simulate()).value;
+      const simluatedSymbol = (await tokenContract.withWallet(this.currentWallet).methods.public_get_symbol().simulate()).value;
 
       const name = this.tokenNameSymboltoString(simluatedName);
       const symbol = this.tokenNameSymboltoString(simluatedSymbol);
@@ -871,16 +839,13 @@ export class TokenService {
         //const symbolSlot = this.cc!.aztec.computeSlotInMap(TokenContract.storage.symbol.slot, addressWallet);
         //simluatedSymbol = (await this.cc!.aztec.loadPublic(tokenAddress, symbolSlot));
 
-        await this.setupInitialTestAccounts(); // Add this line
-
-        const randAccount = await getInitialTestAccountsWallets(this.pxe);
-        simluatedName = (await tokenContract.withWallet(randAccount[0]).methods.public_get_name().simulate()).value;
-        simluatedSymbol = (await tokenContract.withWallet(randAccount[0]).methods.public_get_symbol().simulate()).value;
+        simluatedName = (await tokenContract.withWallet(this.currentWallet).methods.public_get_name().simulate()).value;
+        simluatedSymbol = (await tokenContract.withWallet(this.currentWallet).methods.public_get_symbol().simulate()).value;
 
       }else{
 
-        simluatedName = (await tokenContract.methods.public_get_name().simulate()).value;
-        simluatedSymbol = (await tokenContract.methods.public_get_symbol().simulate()).value;
+        simluatedName = (await tokenContract.withWallet(this.currentWallet).methods.public_get_name().simulate()).value;
+        simluatedSymbol = (await tokenContract.withWallet(this.currentWallet).methods.public_get_symbol().simulate()).value;
       }
 
       let name = this.tokenNameSymboltoString(simluatedName);
@@ -910,6 +875,20 @@ export class TokenService {
   async getTokenBySymbol(symbol: string) {
     const tokens = this.getTokens();
     return tokens.find(token => token.symbol === symbol);
+  }
+
+  private async importConfiguredTokensOnStart() {
+    try {
+      // Wait for any wallet operations to complete
+      await Promise.all(CONFIG.TOKEN_CONTRACTS.map(token => 
+          this.importExistingToken(token.ADDRESS)
+              .catch(err => console.error(`Failed to import token at ${token.ADDRESS}:`, err))
+      ));
+      
+      console.log('Finished importing configured tokens');
+    } catch (error) {
+      console.error('Error importing configured tokens:', error);
+    }
   }
 
 }
