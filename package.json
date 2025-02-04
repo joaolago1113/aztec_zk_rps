@@ -10,7 +10,7 @@
     "clean": "rm -rf node_modules dist src/target src/contracts/target"
   },
   "dependencies": {
-    "@aztec/accountsz": "0.71.0",
+    "@aztec/accounts": "0.71.0",
     "@aztec/aztec.js": "0.71.0",
     "@aztec/bb.js": "0.71.0",
     "@aztec/circuit-types": "0.71.0",
