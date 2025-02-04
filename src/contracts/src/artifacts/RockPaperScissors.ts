@@ -135,10 +135,10 @@ timeout_blocks: {
   public static get notes(): ContractNotes<'UintNote' | 'ValueNote'> {
     return {
       UintNote: {
-          id: new NoteSelector(202136239),
+          id: new NoteSelector(0),
         },
 ValueNote: {
-          id: new NoteSelector(1038582377),
+          id: new NoteSelector(1),
         }
     } as ContractNotes<'UintNote' | 'ValueNote'>;
   }
@@ -167,6 +167,9 @@ ValueNote: {
 
     /** play_game(game_id: field, player2_move: field, bet_match: field) */
     play_game: ((game_id: FieldLike, player2_move: FieldLike, bet_match: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** process_log(log_plaintext: struct, tx_hash: field, unique_note_hashes_in_tx: struct, first_nullifier_in_tx: field, recipient: struct) */
+    process_log: ((log_plaintext: { storage: FieldLike[], len: (bigint | number) }, tx_hash: FieldLike, unique_note_hashes_in_tx: { storage: FieldLike[], len: (bigint | number) }, first_nullifier_in_tx: FieldLike, recipient: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
