@@ -22,6 +22,13 @@ export class RPSService {
       }
       this.pxe = pxe;
     }
+    /**
+     * Check if the RPS service has been initialized
+     * @returns boolean indicating if the service is initialized
+     */
+    isInitialized(): boolean {
+        return this.initialized;
+    }
 
     /**
      * Initialize the RPS contract by deploying or loading an existing instance

@@ -1,4 +1,4 @@
-use dep::aztec::protocol_types::traits::{Deserialize, Serialize};
+use dep::aztec::protocol_types::traits::{Deserialize, Serialize, Packable};
 
 global GAME_NOTE_LEN: u32 = 7;
 
@@ -48,6 +48,32 @@ impl Eq for GameNote {
 
 impl Deserialize<GAME_NOTE_LEN> for GameNote {
     fn deserialize(fields: [Field; GAME_NOTE_LEN]) -> GameNote {
+        GameNote {
+            id: fields[0],
+            bet_amount: fields[1],
+            token_address: fields[2],
+            is_completed: fields[3] != 0,
+            blocktime: fields[4],
+            player2_address: fields[5],
+            player2_move: fields[6]
+        }
+    }
+}
+
+impl Packable<GAME_NOTE_LEN> for GameNote {
+    fn pack(self) -> [Field; GAME_NOTE_LEN] {
+        [
+            self.id,
+            self.bet_amount,
+            self.token_address,
+            self.is_completed as Field,
+            self.blocktime,
+            self.player2_address,
+            self.player2_move
+        ]
+    }
+
+    fn unpack(fields: [Field; GAME_NOTE_LEN]) -> Self {
         GameNote {
             id: fields[0],
             bet_amount: fields[1],

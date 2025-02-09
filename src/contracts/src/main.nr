@@ -1,6 +1,7 @@
 mod game_note;
 
 use dep::aztec::macros::aztec;
+use dep::aztec::protocol_types::traits::Packable;
 
 /// An Aztec v3 Rock-Paper-Scissors contract with betting functionality.
 #[aztec]
@@ -8,17 +9,10 @@ contract RockPaperScissors {
 
     use crate::game_note::GameNote;
     use dep::aztec::{
-        encrypted_logs::{
-            encrypted_event_emission::encode_and_encrypt_event_unconstrained,
-            encrypted_note_emission::{
-                encode_and_encrypt_note_unconstrained,
-            },
-        },
         note::{note_getter_options::NoteGetterOptions},
         protocol_types::public_keys::OvpkM,
         keys::getters::get_public_keys,
         prelude::{PublicImmutable, AztecAddress, PrivateMutable, Map, PrivateSet, PrivateImmutable, PublicMutable, NoteHeader, Point},
-        encrypted_logs::encrypted_note_emission::encode_and_encrypt_note,
         macros::{storage::storage, storage::storage_no_init, functions::{private, public, initializer, internal}}
     };
     use dep::aztec::{note::note_getter_options::SortOrder, utils::comparison::Comparator};
@@ -64,11 +58,7 @@ contract RockPaperScissors {
 
         let mut player_move_note = ValueNote::new(player1_move, context.msg_sender());
 
-        storage.plays.at(game_id).initialize(&mut player_move_note).emit(encode_and_encrypt_note_unconstrained(
-            &mut context,
-            context.msg_sender(),
-            context.msg_sender(),
-        ));
+        storage.plays.at(game_id).initialize(&mut player_move_note);
 
         // Create and insert game note
         let mut game_note = GameNote::new(
@@ -94,7 +84,7 @@ contract RockPaperScissors {
         storage.games.at(game_note.id).write(game_note);
 
         Token::at(AztecAddress { inner: game_note.token_address })
-            .transfer_in_public(sender, context.this_address(), game_note.bet_amount, 0)
+            .transfer_in_public(sender, context.this_address(), U128::from_integer(game_note.bet_amount), 0)
             .call(&mut context);
     }
 
@@ -109,7 +99,7 @@ contract RockPaperScissors {
         let token_addr = AztecAddress { inner: game_note.token_address };
 
         Token::at(token_addr)
-            .transfer_in_public(context.msg_sender(), context.this_address(), bet_match, 0)
+            .transfer_in_public(context.msg_sender(), context.this_address(), U128::from_integer(bet_match), 0)
             .call(&mut context);
 
         game_note.player2_move = player2_move;
@@ -153,7 +143,7 @@ contract RockPaperScissors {
             is_draw = true;
         } else {
             // RPS logic: if (p1 + 1) mod 3 == p2 => p2 wins
-            let p1_plus_one = ((p1 + 1) as u32 % 3).to_field();
+            let p1_plus_one = ((p1 + 1) as u32 % 3) as Field;
             if p1_plus_one == p2 {
                 // Player2 wins
                 winner = AztecAddress { inner: player2_address };
@@ -169,16 +159,16 @@ contract RockPaperScissors {
         if is_draw {
             // Return bets to both players
             Token::at(token_addr)
-                .transfer_in_public(context.this_address(), player1_address, bet_amount, 0)
+                .transfer_in_public(context.this_address(), player1_address, U128::from_integer(bet_amount), 0)
                 .call(&mut context);
 
             Token::at(token_addr)
-                .transfer_in_public(context.this_address(), AztecAddress { inner: player2_address }, bet_amount, 0)
+                .transfer_in_public(context.this_address(), AztecAddress { inner: player2_address }, U128::from_integer(bet_amount), 0)
                 .call(&mut context);
         } else {
             // Send entire pot to winner
             Token::at(token_addr)
-                .transfer_in_public(context.this_address(), winner, pot, 0)
+                .transfer_in_public(context.this_address(), winner, U128::from_integer(pot), 0)
                 .call(&mut context);
         }
 
@@ -210,7 +200,7 @@ contract RockPaperScissors {
         // Award both bets to player 2 since player 1 timed out
         let pot = bet_amount * Field::from(2);
         Token::at(token_addr)
-            .transfer_in_public(context.this_address(), AztecAddress { inner: game_note.player2_address }, pot, 0)
+            .transfer_in_public(context.this_address(), AztecAddress { inner: game_note.player2_address }, U128::from_integer(pot), 0)
             .call(&mut context);
 
         // Mark game as completed

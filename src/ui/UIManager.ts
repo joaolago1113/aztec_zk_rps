@@ -1846,7 +1846,16 @@ export class UIManager {
         if (contractBalanceElement) {
           contractBalanceElement.innerHTML = '<div class="loading-spinner small"></div>';
         }
-        
+
+        if (!this.rpsService.isInitialized()) {
+
+          balanceElement.textContent = 'No balance';
+          if (contractBalanceElement) {
+            contractBalanceElement.textContent = 'No balance';
+          }
+          return;
+        }
+
         const tokenDetails = await this.rpsService.getTokenDetails(tokenSelect.value);
         const balance = await this.rpsService.getPublicBalance(tokenSelect.value);
         balanceElement.textContent = `${balance} ${tokenDetails.symbol}`;
