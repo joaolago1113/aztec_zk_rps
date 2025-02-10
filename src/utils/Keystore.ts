@@ -65,9 +65,9 @@ export class KeyStore {
       masterOutgoingViewingSecretKey,
       masterTaggingSecretKey,
       publicKeys,
-    } = deriveKeys(sk);
+    } = await deriveKeys(sk);
 
-    const account = computeAddress(publicKeys, partialAddress);
+    const account = await computeAddress(publicKeys, partialAddress);
 
     // Naming of keys is as follows ${account}-${n/iv/ov/t}${sk/pk}_m
     await this.#keys.set(`${account.toString()}-ivsk_m`, masterIncomingViewingSecretKey.toBuffer());
@@ -82,18 +82,18 @@ export class KeyStore {
 
     // We store pk_m_hash under `account-{n/iv/ov/t}pk_m_hash` key to be able to obtain address and key prefix
     // using the #getKeyPrefixAndAccount function later on
-    await this.#keys.set(`${account.toString()}-npk_m_hash`, publicKeys.masterNullifierPublicKey.hash().toBuffer());
+    await this.#keys.set(`${account.toString()}-npk_m_hash`,(await publicKeys.masterNullifierPublicKey.hash()).toBuffer());
     await this.#keys.set(
       `${account.toString()}-ivpk_m_hash`,
-      publicKeys.masterIncomingViewingPublicKey.hash().toBuffer(),
-    );
+      (await publicKeys.masterIncomingViewingPublicKey.hash()).toBuffer(),
+    );  
     await this.#keys.set(
       `${account.toString()}-ovpk_m_hash`,
-      publicKeys.masterOutgoingViewingPublicKey.hash().toBuffer(),
+      (await publicKeys.masterOutgoingViewingPublicKey.hash()).toBuffer(),
     );
-    await this.#keys.set(`${account.toString()}-tpk_m_hash`, publicKeys.masterTaggingPublicKey.hash().toBuffer());
+    await this.#keys.set(`${account.toString()}-tpk_m_hash`, (await publicKeys.masterTaggingPublicKey.hash()).toBuffer());
 
-    const privateKey = deriveSigningKey(sk);
+    const privateKey = await deriveSigningKey(sk);
 
     await this.#keys.set(`${account.toString()}-ecdsa_sk`, privateKey.toBuffer());
 
@@ -104,7 +104,7 @@ export class KeyStore {
     }
     
     this.saveToLocalStorage();
-    return Promise.resolve(new CompleteAddress(account, publicKeys, partialAddress));
+    return CompleteAddress.create(account, publicKeys, partialAddress);
   }
 
   /**
@@ -203,7 +203,7 @@ export class KeyStore {
    * @param contractAddress - The contract address to silo the secret key in the key validation request with.
    * @returns The key validation request.
    */
-  public getKeyValidationRequest(pkMHash: Fr, contractAddress: AztecAddress): Promise<KeyValidationRequest> {
+  public async getKeyValidationRequest(pkMHash: Fr, contractAddress: AztecAddress): Promise<KeyValidationRequest> {
     const [keyPrefix, account] = this.#getKeyPrefixAndAccount(pkMHash);
 
     // Now we find the master public key for the account
@@ -225,7 +225,7 @@ export class KeyStore {
         const foundPkM = Point.fromBuffer(
           pkMsBuffer.subarray(keyIndexInBuffer * Point.SIZE_IN_BYTES, (keyIndexInBuffer + 1) * Point.SIZE_IN_BYTES),
         );
-        if (foundPkM.hash().equals(pkMHash)) {
+        if ((await foundPkM.hash()).equals(pkMHash)) {
           pkM = foundPkM;
           break;
         }
@@ -255,12 +255,12 @@ export class KeyStore {
     }
 
     // We sanity check that it's possible to derive the public key from the secret key
-    if (!derivePublicKeyFromSecretKey(skM).equals(pkM)) {
+    if (!(await derivePublicKeyFromSecretKey(skM)).equals(pkM)) {
       throw new Error(`Could not derive ${keyPrefix}pkM from ${keyPrefix}skM.`);
     }
 
     // At last we silo the secret key and return the key validation request
-    const skApp = computeAppSecretKey(skM, contractAddress, keyPrefix!);
+    const skApp = await computeAppSecretKey(skM, contractAddress, keyPrefix!);
 
     return Promise.resolve(new KeyValidationRequest(pkM, skApp));
   }
@@ -368,7 +368,7 @@ export class KeyStore {
    * @returns A Promise that resolves to sk_m.
    * @dev Used when feeding the sk_m to the kernel circuit for keys verification.
    */
-  public getMasterSecretKey(pkM: PublicKey): Promise<GrumpkinScalar> {
+  public async getMasterSecretKey(pkM: PublicKey): Promise<GrumpkinScalar> {
     const [keyPrefix, account] = this.#getKeyPrefixAndAccount(pkM);
 
     // We get the secret keys buffer and iterate over the values in the buffer to find the one that matches pkM
@@ -386,7 +386,7 @@ export class KeyStore {
         const foundSkM = GrumpkinScalar.fromBuffer(
           secretKeysBuffer.subarray(i * GrumpkinScalar.SIZE_IN_BYTES, (i + 1) * GrumpkinScalar.SIZE_IN_BYTES),
         );
-        if (derivePublicKeyFromSecretKey(foundSkM).equals(pkM)) {
+        if ((await derivePublicKeyFromSecretKey(foundSkM)).equals(pkM)) {
           skM = foundSkM;
           break;
         }
@@ -417,12 +417,12 @@ export class KeyStore {
     await this.#appendValue(`${account.toString()}-nsk_m`, newSecretKey);
 
     // Now we derive the public key from the new secret key and append it to the buffer of original public keys
-    const newPublicKey = derivePublicKeyFromSecretKey(newSecretKey);
+    const newPublicKey = await derivePublicKeyFromSecretKey(newSecretKey);
     await this.#appendValue(`${account.toString()}-npk_m`, newPublicKey);
 
     // At last we store npk_m_hash under `account-npk_m_hash` key to be able to obtain address and key prefix
     // using the #getKeyPrefixAndAccount function later on
-    await this.#appendValue(`${account.toString()}-npk_m_hash`, newPublicKey.hash());
+    await this.#appendValue(`${account.toString()}-npk_m_hash`, await newPublicKey.hash());
 
     this.saveToLocalStorage();
   }

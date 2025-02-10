@@ -178,8 +178,8 @@ export class WalletConnectService {
           }
 
           const privateKey = await this.accountService.getPrivateKey(from);
-          const derivedSecret = this.deriveShieldSecret(privateKey, 0);
-          const shieldSecretHashIn = computeSecretHash(derivedSecret);
+          const derivedSecret = await this.deriveShieldSecret(privateKey, 0);
+          const shieldSecretHashIn = await computeSecretHash(derivedSecret);
 
           console.log('shieldSecretHash:', shieldSecretHashIn);
           result = shieldSecretHashIn.toString();
@@ -454,7 +454,7 @@ export class WalletConnectService {
     return true;
   }
 
-  private deriveShieldSecret(privateKey: Fr, nonce: number): Fr {
-    return computeSecretHash(new Fr(privateKey.toBigInt() + BigInt(nonce)));
+  private async deriveShieldSecret(privateKey: Fr, nonce: number): Promise<Fr> {
+    return await computeSecretHash(new Fr(privateKey.toBigInt() + BigInt(nonce)));
   }
 }

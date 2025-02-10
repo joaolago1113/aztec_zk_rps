@@ -52,7 +52,7 @@ async function main() {
  // const walletSdk = await WalletSdkFactory.getWalletSdkInstance();
 
   uiManager = new UIManager();
-  rpsService = new RPSService(pxe);
+  rpsService = new RPSService(pxe, uiManager);
   const keystore = KeystoreFactory.getKeystore();  
   const accountService = new AccountService(pxe, keystore, uiManager);
 
@@ -60,7 +60,7 @@ async function main() {
   const tokenService = new TokenService(pxe, uiManager, accountService, transactionService);
   const walletConnectService = new WalletConnectService(CONFIG.WALLETCONNECT_PROJECT_ID, CONFIG.SDK_METADATA, accountService, uiManager);
 
-  await rpsService.initialize( accountService );
+  await rpsService.initialize(accountService);
 
   accountService.setTokenService(tokenService);
 

@@ -4,6 +4,7 @@ import { AccountService } from './AccountService.js';
 import { PublicKeys, getContractClassFromArtifact } from '@aztec/circuits.js';
 import { CONFIG } from '../config.js';
 import { TokenContract, TokenContractArtifact } from '@aztec/noir-contracts.js/Token';
+import { UIManager } from '../ui/UIManager.js';
 
 export class RPSService {
     private contract!: RockPaperScissorsContract;
@@ -16,11 +17,12 @@ export class RPSService {
     private userGames: Map<string, { started: string[], joined: string[] }> = new Map();
     private currentWalletAddress: string | null = null;
     private initialized: boolean = false;
-    constructor(pxe: PXE) {
-      if (!pxe) {
-        throw new Error('PXE object is required');
-      }
-      this.pxe = pxe;
+
+    constructor(pxe: PXE, private uiManager: UIManager) {
+        if (!pxe) {
+            throw new Error('PXE object is required');
+        }
+        this.pxe = pxe;
     }
     /**
      * Check if the RPS service has been initialized
@@ -44,6 +46,12 @@ export class RPSService {
         }
 
         if(this.initialized){
+            // If already initialized but wallet changed, update the current wallet address
+            const newWalletAddress = currentWallet.getAddress().toString();
+            if (newWalletAddress !== this.currentWalletAddress) {
+                this.currentWalletAddress = newWalletAddress;
+                this.loadUserGames(); // Load games for the new wallet
+            }
             return;
         }
 
@@ -51,7 +59,6 @@ export class RPSService {
         this.currentWalletAddress = currentWallet.getAddress().toString();
         
         const contractAddress = AztecAddress.fromString(CONFIG.RPS_CONTRACT.ADDRESS);
-
         this.contractAddress = contractAddress;
         
         await this.initializeContract(accountService);
@@ -66,7 +73,7 @@ export class RPSService {
         try {
             this.contractInitialized = true;
 
-            if (!(await this.pxe.isContractPubliclyDeployed(this.contractAddress))) {
+            if (!(await (await this.pxe.getContractMetadata(this.contractAddress)).isContractPubliclyDeployed)) {
                 throw new Error('Contract not deployed at the specified address');
             }
 
@@ -80,7 +87,7 @@ export class RPSService {
             }
 
             const contractClass = getContractClassFromArtifact(RockPaperScissorsContract.artifact);
-            const contractClassId = contractClass.id;
+            const contractClassId = (await contractClass).id;
             // Create instance using the deployment parameters
             const instance = {
                 address: this.contractAddress,
@@ -118,7 +125,7 @@ export class RPSService {
             try {
                 const tokenAddress = AztecAddress.fromString(tokenConfig.ADDRESS);
                 
-                if (!(await this.pxe.isContractPubliclyDeployed(tokenAddress))) {
+                if (!(await (await this.pxe.getContractMetadata(tokenAddress)).isContractPubliclyDeployed)) {
                     console.warn(`Token contract not deployed at address: ${tokenConfig.ADDRESS}`);
                     continue;
                 }
@@ -133,7 +140,7 @@ export class RPSService {
                 }
 
                 const contractClass = getContractClassFromArtifact(TokenContractArtifact);
-                const contractClassId = contractClass.id;
+                const contractClassId = (await contractClass).id;
 
                 // Create instance using the deployment parameters
                 const instance = {
@@ -237,13 +244,13 @@ export class RPSService {
                 nonce
             );
 
-            await currentWallet.setPublicAuthWit(
+            await (await currentWallet.setPublicAuthWit(
                 {
                     caller: this.contractAddress,
                     action: transferAction!
                 },
                 true
-            ).send().wait();
+            )).send().wait();
 
             const game_id = Fr.random();
 
@@ -331,13 +338,13 @@ export class RPSService {
             console.log(currentWallet);
 
             // Set public auth with the transfer action
-            await currentWallet.setPublicAuthWit(
+            await (await currentWallet.setPublicAuthWit(
                 {
                     caller: this.contractAddress,
                     action: transferAction
                 },
                 true
-            ).send().wait();
+            )).send().wait();
             
             // Join the game
             const tx = await this.contract.methods.play_game(
@@ -394,6 +401,8 @@ export class RPSService {
         try {
             const gameIdFr = Fr.fromString(gameId);
             
+            console.log("Resolving game:", gameIdFr);
+
             const tx = await this.contract.methods.resolve_game(gameIdFr).send();
             await tx.wait();
             
@@ -625,55 +634,80 @@ export class RPSService {
     }
 
     async getUserStartedGames(): Promise<any[]> {
-        if (!this.currentWalletAddress) {
-            console.warn('No wallet address available');
-            return [];
-        }
+        // Show loading state
+        this.uiManager.setStartedGamesLoading(true);
         
-        const userGames = this.userGames.get(this.currentWalletAddress);
-        if (!userGames) {
-            console.warn('No games found for current wallet');
-            return [];
-        }
-        
-        console.log('User started games:', userGames.started);
-        
-        const games = [];
-        for (const gameId of userGames.started) {
-            try {
-                const game = await this.getGameDetails(gameId);
-                games.push({ ...game, id: gameId });
-            } catch (err) {
-                console.error(`Error fetching game ${gameId}:`, err);
+        try {
+            console.log('Getting started games, current wallet address:', this.currentWalletAddress);
+            if (!this.currentWalletAddress) {
+                console.warn('No wallet address available');
+                return [];
             }
+            
+            const userGames = this.userGames.get(this.currentWalletAddress);
+            console.log('User games for address:', userGames);
+            if (!userGames) {
+                console.warn('No games found for current wallet');
+                return [];
+            }
+            
+            // Remove duplicates from started games array
+            userGames.started = [...new Set(userGames.started)];
+            
+            console.log('User started games after deduplication:', userGames.started);
+            
+            const games = [];
+            for (const gameId of userGames.started) {
+                try {
+                    const game = await this.getGameDetails(gameId);
+                    games.push({ ...game, id: gameId });
+                } catch (err) {
+                    console.error(`Error fetching game ${gameId}:`, err);
+                }
+            }
+            console.log('Final games array:', games);
+            return games;
+        } finally {
+            // Hide loading state
+            this.uiManager.setStartedGamesLoading(false);
         }
-        return games;
     }
 
     async getUserJoinedGames(): Promise<any[]> {
-        if (!this.currentWalletAddress) {
-            console.warn('No wallet address available');
-            return [];
-        }
+        // Show loading state
+        this.uiManager.setJoinedGamesLoading(true);
         
-        const userGames = this.userGames.get(this.currentWalletAddress);
-        if (!userGames) {
-            console.warn('No games found for current wallet');
-            return [];
-        }
-        
-        console.log('User joined games:', userGames.joined);
-        
-        const games = [];
-        for (const gameId of userGames.joined) {
-            try {
-                const game = await this.getGameDetails(gameId);
-                games.push({ ...game, id: gameId });
-            } catch (err) {
-                console.error(`Error fetching game ${gameId}:`, err);
+        try {
+            if (!this.currentWalletAddress) {
+                console.warn('No wallet address available');
+                return [];
             }
+            
+            const userGames = this.userGames.get(this.currentWalletAddress);
+            if (!userGames) {
+                console.warn('No games found for current wallet');
+                return [];
+            }
+            
+            // Remove duplicates from joined games array
+            userGames.joined = [...new Set(userGames.joined)];
+            
+            console.log('User joined games:', userGames.joined);
+            
+            const games = [];
+            for (const gameId of userGames.joined) {
+                try {
+                    const game = await this.getGameDetails(gameId);
+                    games.push({ ...game, id: gameId });
+                } catch (err) {
+                    console.error(`Error fetching game ${gameId}:`, err);
+                }
+            }
+            return games;
+        } finally {
+            // Hide loading state
+            this.uiManager.setJoinedGamesLoading(false);
         }
-        return games;
     }
 
     private saveUserGames() {
@@ -699,6 +733,32 @@ export class RPSService {
         if (storedGames) {
             this.userGames.set(this.currentWalletAddress, JSON.parse(storedGames));
             console.log('Loaded user games:', JSON.parse(storedGames));
+        }
+    }
+
+    // Add these public methods to access the private properties
+    getUserGames(): Map<string, { started: string[], joined: string[] }> {
+        return this.userGames;
+    }
+
+    getCurrentWalletAddress(): string | null {
+        return this.currentWalletAddress;
+    }
+
+    // Add this method to update the current wallet
+    async updateCurrentWallet() {
+        if (!this.accountService) return;
+
+        const currentWallet = await this.accountService.getCurrentWallet();
+        if (!currentWallet) {
+            console.error('No wallet available');
+            return;
+        }
+
+        const newWalletAddress = currentWallet.getAddress().toString();
+        if (newWalletAddress !== this.currentWalletAddress) {
+            this.currentWalletAddress = newWalletAddress;
+            this.loadUserGames(); // Load games for the new wallet
         }
     }
 }

@@ -75,6 +75,9 @@ export class UIManager {
     const hash = window.location.hash.slice(1) || 'accounts';
     console.log('Page changed to:', hash);
     
+    // Update account UI for all pages
+    await this.updateAccountUI();
+    
     switch (hash) {
       case 'accounts':
         await this.updateAccountsPage();
@@ -101,6 +104,24 @@ export class UIManager {
     await this.updateAccountUI();
     this.setAccountSelectionListener();
     // Any other account-specific updates
+
+    const accountSelect = document.getElementById('accountSelect') as HTMLSelectElement | null;
+    if (!accountSelect) {
+      console.debug('Account select not found. This is expected if not on the Accounts page.');
+      return;
+    }
+
+    accountSelect.addEventListener('change', async () => {
+        try {
+            await this.accountService.setCurrentAccountIndex(parseInt(accountSelect.value));
+            if (this.rpsService) {
+                await this.rpsService.updateCurrentWallet();
+            }
+            await this.updateAccountUI();
+        } catch (error) {
+            console.error('Error changing account:', error);
+        }
+    });
   }
 
   private async updateTokensPage() {
@@ -858,10 +879,10 @@ export class UIManager {
 
         const cc = await CheatCodes.create(CONFIG.l1RpcUrl, pxe);
 
-        ownerPublicBalanceSlot = cc.aztec.computeSlotInMap(TokenContract.storage.public_balances.slot, fromAddress.toBigInt());
+        ownerPublicBalanceSlot = await cc.aztec.computeSlotInMap(TokenContract.storage.public_balances.slot, fromAddress.toBigInt());
         fromBalance = (await pxe.getPublicStorageAt(tokenContract.address, ownerPublicBalanceSlot)).toBigInt();
 
-        ownerPublicBalanceSlot = cc.aztec.computeSlotInMap(TokenContract.storage.public_balances.slot, toAddress.toBigInt());
+        ownerPublicBalanceSlot = await cc.aztec.computeSlotInMap(TokenContract.storage.public_balances.slot, toAddress.toBigInt());
         toBalance = (await pxe.getPublicStorageAt(tokenContract.address, ownerPublicBalanceSlot)).toBigInt();
       }
 
@@ -1097,46 +1118,31 @@ export class UIManager {
   }
 
   private async updateAccountUI() {
-    const accountSelect = document.getElementById('accountSelect') as HTMLSelectElement | null;
-    const accountLabel = document.getElementById('accountLabel');
-    const accountAddress = document.getElementById('accountAddress');
-
     const accounts = await this.accountService.getAccounts();
-    
+    const currentIndex = await this.accountService.getCurrentAccountIndex() ?? 0;
+    const currentWallet = await this.accountService.getCurrentWallet();
+
+    // Update dropdown in accounts page
+    const accountSelect = document.getElementById('accountSelect') as HTMLSelectElement;
     if (accountSelect) {
-      accountSelect.innerHTML = '<option value="" disabled selected>Select an account</option>';
-      
-      accounts.forEach((account, index) => {
-        const option = document.createElement('option');
-        option.value = index.toString();
-        option.textContent = `Account ${index + 1} (${account.toString().slice(0, 5)}...${account.toString().slice(-5)})`;
-        accountSelect.appendChild(option);
-      });
-
-      console.log(accountSelect);
-
-      // Select the current account in the dropdown
-      const currentAccountIndex = this.accountService.getCurrentAccountIndex();
-      if (currentAccountIndex !== null && currentAccountIndex < accounts.length) {
-        accountSelect.value = currentAccountIndex.toString();
-      }
+        accountSelect.innerHTML = accounts.map((account, index) => `
+            <option value="${index}" ${index === currentIndex ? 'selected' : ''}>
+                Account ${index + 1} (${account.toString().slice(0, 6)}...${account.toString().slice(-4)})
+            </option>
+        `).join('');
     }
 
-    await this.updateHeaderAccountInfo(accountLabel, accountAddress, (await this.accountService.getAccounts()).map(fr => AztecAddress.fromField(fr)));
-  }
-
-  private async updateHeaderAccountInfo(accountLabel: HTMLElement | null, accountAddress: HTMLElement | null, accounts: AztecAddress[]) {
-    const currentAccountIndex = this.accountService.getCurrentAccountIndex();
-    if (currentAccountIndex !== null && accounts.length > 0) {
-      if (accountLabel && accountAddress && currentAccountIndex < accounts.length) {
-        accountLabel.textContent = `Account ${currentAccountIndex + 1}`;
-        accountAddress.textContent = `(${accounts[currentAccountIndex].toString().slice(0, 5)}...${accounts[currentAccountIndex].toString().slice(-5)})`;
-      }
+    // Update header account info
+    const accountLabel = document.getElementById('accountLabel');
+    const accountAddress = document.getElementById('accountAddress');
+    
+    if (currentWallet) {
+        const address = currentWallet.getAddress().toString();
+        if (accountLabel) accountLabel.textContent = `Account ${currentIndex + 1}`;
+        if (accountAddress) accountAddress.textContent = `(${address.slice(0, 6)}...${address.slice(-4)})`;
     } else {
-      if (accountLabel && accountAddress) {
-        accountLabel.textContent = 'Connect';
-        accountAddress.textContent = '';
-      }
+        if (accountLabel) accountLabel.textContent = 'Connect';
+        if (accountAddress) accountAddress.textContent = '';
     }
   }
 
@@ -1155,11 +1161,7 @@ export class UIManager {
         if (currentWallet) {
           await this.tokenService.updateBalancesForNewAccount(currentWallet);
         }
-        this.updateHeaderAccountInfo(
-          document.getElementById('accountLabel'),
-          document.getElementById('accountAddress'),
-          (await this.accountService.getAccounts()).map(fr => AztecAddress.fromField(fr))
-        );
+        await this.updateAccountUI();
       }
     });
   }
@@ -1656,39 +1658,41 @@ export class UIManager {
   }
 
   private async setupRPSPage() {
+    if (!this.rpsService) {
+        console.error('RPS Service not initialized');
+        return;
+    }
+
     await this.rpsService.initialize(this.accountService);
     this.setupTabs();
     this.setupGameActions();
     this.setupMoveSelection();
     this.initializeTokenSelect();
     
-    // Load both Active Games and My Games concurrently
-    Promise.all([
-      this.updateGamesList(),
-      this.updateUserGamesTables()
+    // Wait for both updates to complete
+    await Promise.all([
+        this.updateGamesList(),
+        this.updateUserGamesTables() // Make sure this gets called
     ]);
     
-    // Expose a global copy handler for game IDs (used in inline onclick)
+    // Expose global handlers
     window.copyGameIdHandler = (gameId: string) => {
-      this.copyGameId(gameId);
+        this.copyGameId(gameId);
     };
     
-    // Add global handler for timeout button
     window.timeoutGame = async (gameId: string) => {
-      try {
-        await this.rpsService.timeoutGame(gameId);
-        this.addRPSLog(`Successfully timed out game ${this.formatGameId(gameId)}!`);
-        // Optionally update Active Games here if needed
-        // this.updateGamesList();
-      } catch (err: any) {
-        this.addRPSLog(`Error timing out game: ${err?.message || err}`);
-      }
+        try {
+            await this.rpsService.timeoutGame(gameId);
+            this.addRPSLog(`Successfully timed out game ${this.formatGameId(gameId)}!`);
+        } catch (err: any) {
+            this.addRPSLog(`Error timing out game: ${err?.message || err}`);
+        }
     };
     
     // Start periodic timeout checks
-    setInterval(() => this.updateGameTimeouts(), 10000); // Check every 10 seconds
+    setInterval(() => this.updateGameTimeouts(), 10000);
     
-    this.updateRPSBalance();
+    await this.updateRPSBalance();
   }
 
   private initializeTokenSelect() {
@@ -1734,7 +1738,6 @@ export class UIManager {
             <td>${game.betAmount}</td>
             <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
             <td>${game.player2Move === '0' ? 'Waiting' : this.getMoveText(game.player2Move)}</td>
-            <td>${result}</td>
             <td>
               ${showResolve ? `
                 <button onclick="resolveGame('${game.id}')" class="resolve-button">
@@ -1918,6 +1921,9 @@ export class UIManager {
   private generateGameRow(game: { id: bigint, betAmount: string, isCompleted: boolean, player2Move: string, blocktime: string }) {
     const id = game.id.toString();
     const isWaitingForPlayer2 = game.blocktime === '0';
+    const isUserStartedGame = this.isGameStartedByUser(id);
+    const isUserJoinedGame = this.isGameJoinedByUser(id);
+    const canTimeout = !isWaitingForPlayer2 && !game.isCompleted; // Can timeout if player2 has moved and game isn't completed
 
     return `
         <tr data-game-id="${id}">
@@ -1927,23 +1933,46 @@ export class UIManager {
             <td>${isWaitingForPlayer2 ? 'Waiting' : this.getMoveText(game.player2Move)}</td>
             <td>
                 ${game.isCompleted ? '-' : 
-                    isWaitingForPlayer2 ? 
+                    isUserStartedGame && !isWaitingForPlayer2 ? 
+                        `<button onclick="resolveGame('${id}')" class="resolve-button">
+                            Resolve
+                        </button>` :
+                    (!isUserStartedGame && !isUserJoinedGame && isWaitingForPlayer2) ? 
                         `<button class="button action-button play-button" onclick="document.getElementById('gameId').value='${id}'; document.getElementById('joinGameSection').scrollIntoView({behavior: 'smooth'})">
                             Play
                         </button>` :
-                        `<div class="game-actions">
-                            <button onclick="resolveGame('${id}')" class="resolve-button">
-                                Resolve
-                            </button>
-                            <button onclick="timeoutGame('${id}')" class="timeout-button" id="timeout-${id}">
-                                Timeout
-                            </button>
-                            <div class="timeout-info" id="timeout-info-${id}"></div>
-                        </div>`
+                    canTimeout ? 
+                        `<button onclick="timeoutGame('${id}')" class="timeout-button" id="timeout-${id}">
+                            Timeout
+                        </button>
+                        <div class="timeout-info" id="timeout-info-${id}"></div>` :
+                        '-'
                 }
             </td>
         </tr>
     `;
+}
+
+  private isGameStartedByUser(gameId: string): boolean {
+    if (!this.rpsService) return false;
+    const userGames = this.rpsService.getUserGames();
+    const currentWalletAddress = this.rpsService.getCurrentWalletAddress();
+    
+    if (!userGames || !currentWalletAddress) return false;
+    
+    const games = userGames.get(currentWalletAddress);
+    return games?.started.includes(gameId) || false;
+  }
+
+  private isGameJoinedByUser(gameId: string): boolean {
+    if (!this.rpsService) return false;
+    const userGames = this.rpsService.getUserGames();
+    const currentWalletAddress = this.rpsService.getCurrentWalletAddress();
+    
+    if (!userGames || !currentWalletAddress) return false;
+    
+    const games = userGames.get(currentWalletAddress);
+    return games?.joined.includes(gameId) || false;
   }
 
   private formatGameId(gameId: string): string {
@@ -1973,7 +2002,6 @@ export class UIManager {
             <tr>
                 <td colspan="5" class="loading-cell">
                     <div class="loading-container">
-                        <div class="loading-spinner"></div>
                         <span>Loading games...</span>
                     </div>
                 </td>
@@ -2272,5 +2300,28 @@ export class UIManager {
       myGamesContent.style.display = 'block';
     }
     // No reloading here—cached content will be shown immediately
+  }
+
+  // Add these methods to UIManager class
+  setStartedGamesLoading(loading: boolean) {
+    const tbody = document.getElementById('startedGamesTableBody');
+    if (tbody) {
+        if (loading) {
+            tbody.innerHTML = '<tr><td colspan="5">Loading Games...</td></tr>';
+        } else {
+            tbody.innerHTML = ''; // Clear before new data is added
+        }
+    }
+  }
+
+  setJoinedGamesLoading(loading: boolean) {
+    const tbody = document.getElementById('joinedGamesTableBody');
+    if (tbody) {
+        if (loading) {
+            tbody.innerHTML = '<tr><td colspan="5">Loading Games...</td></tr>';
+        } else {
+            tbody.innerHTML = ''; // Clear before new data is added
+        }
+    }
   }
 }

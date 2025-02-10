@@ -49,11 +49,11 @@ export class AccountService {
 
     accountContract = new EcdsaKAccountContract(privateKey.toBuffer());
 
-    const account = new AccountManager(this.pxe, secretKeyFr, accountContract, Fr.ONE);
+    const account = await AccountManager.create(this.pxe, secretKeyFr, accountContract);
 
     const wallet = await this.getWallet(account);
 
-    const partialAddress = computePartialAddress(account.getInstance());
+    const partialAddress = await computePartialAddress(account.getInstance());
 
     const accountInKeystore = await this.isAccountInKeystore(wallet);
 
@@ -86,7 +86,7 @@ export class AccountService {
 
         account = await this.setupAccount(secretKey, use2FA ? Buffer.from(hotpSecret) : Buffer.from([]));
         wallet = await this.getWallet(account);
-        const partialAddress = computePartialAddress(account.getInstance());
+        const partialAddress = await computePartialAddress(account.getInstance());
 
         const accountInKeystore = await this.isAccountInKeystore(wallet);
 
@@ -118,7 +118,7 @@ export class AccountService {
     }
     console.log(accountContract);
 
-    const account = new AccountManager(this.pxe, secretKey, accountContract!, Fr.ONE);
+    const account = await AccountManager.create(this.pxe, secretKey, accountContract!, Fr.ONE);
     return account;
   }
 
@@ -191,7 +191,7 @@ export class AccountService {
   }
 
   private async checkContractInitialization(account: AccountManager): Promise<boolean> {
-    return this.pxe.isContractInitialized(account.getAddress());
+    return (await this.pxe.getContractMetadata(account.getAddress())).isContractInitialized;
   }
 
   private async isAccountInKeystore(wallet: AccountWallet): Promise<boolean> {
@@ -266,7 +266,7 @@ export class AccountService {
 
     const newSecretKey = await CryptoUtils.generateSecretKey();
 
-    const { masterNullifierSecretKey } = deriveKeys(newSecretKey);
+    const { masterNullifierSecretKey } = await deriveKeys(newSecretKey);
 
     //await wallet.rotateNullifierKeys(masterNullifierSecretKey);
 

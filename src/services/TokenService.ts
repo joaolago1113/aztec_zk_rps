@@ -148,12 +148,12 @@ export class TokenService {
       console.log('Deploy options created:', deployOpts);
 
       console.log('Getting instance address...');
-      const address = deploy.getInstance(deployOpts).address;
+      const address = (await deploy.getInstance(deployOpts)).address;
       console.log(`Instance address: ${address.toString()}`);
 
       let contract: TokenContract;
 
-      if (await this.pxe.isContractPubliclyDeployed(address)) {
+      if (await (await this.pxe.getContractMetadata(address)).isContractPubliclyDeployed) {
         console.log(`Token contract at ${address.toString()} already deployed`);
         await this.registerContract(wallet, address);
         contract = await TokenContract.at(address, wallet);
@@ -381,7 +381,7 @@ export class TokenService {
     try {
       const { contract, address } = await this.setupToken(this.currentWallet, tokenData);
       const mintAmount = new Fr(BigInt(parsedAmount * 1e9));
-      const tx = await contract.methods.mint_to_private(this.currentWallet.getAddress(),this.currentWallet.getAddress(),mintAmount).send();
+      const tx = await contract.methods.mint_to_private(this.currentWallet.getAddress(),this.currentWallet.getAddress(),mintAmount.toBigInt()).send();
 
       await this.transactionService.saveTransaction({
         action: 'mint',
@@ -424,7 +424,7 @@ export class TokenService {
       const address = AztecAddress.fromString(tokenAddress);
       const contract = await TokenContract.at(address, this.currentWallet);
       const mintAmount = new Fr(BigInt(parsedAmount * 1e9));
-      const tx = await contract.methods.mint_to_private(this.currentWallet.getAddress(),this.currentWallet.getAddress(),mintAmount).send();
+      const tx = await contract.methods.mint_to_private(this.currentWallet.getAddress(),this.currentWallet.getAddress(),mintAmount.toBigInt()).send();
 
 
       const tokenContract = await TokenContract.at(AztecAddress.fromString(tokenAddress), this.currentWallet);
@@ -485,7 +485,7 @@ export class TokenService {
       const shieldSecretHash = computeSecretHash(shieldSecret);
 
       const tx = await tokenContract.methods
-        .transfer_to_private(this.currentWallet.getAddress(), shieldAmount)
+        .transfer_to_private(this.currentWallet.getAddress(), shieldAmount.toBigInt())
         .send({});
 
       await this.transactionService.saveTransaction({
@@ -667,7 +667,7 @@ export class TokenService {
     try {
       // Perform the unshield transaction
       const tx = await tokenContract.methods
-        .transfer_to_public(this.currentWallet.getAddress(), this.currentWallet.getAddress(), unshieldAmount, 0)
+        .transfer_to_public(this.currentWallet.getAddress(), this.currentWallet.getAddress(), unshieldAmount.toBigInt(), 0)
         .send({});
 
       await this.transactionService.saveTransaction({
