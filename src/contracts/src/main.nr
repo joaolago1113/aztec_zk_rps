@@ -1,24 +1,18 @@
 mod game_note;
 
 use dep::aztec::macros::aztec;
-use dep::aztec::protocol_types::traits::Packable;
 
 /// An Aztec v3 Rock-Paper-Scissors contract with betting functionality.
 #[aztec]
 contract RockPaperScissors {
 
-    use crate::game_note::GameNote;
     use dep::aztec::{
-        note::{note_getter_options::NoteGetterOptions},
-        protocol_types::public_keys::OvpkM,
-        keys::getters::get_public_keys,
-        prelude::{PublicImmutable, AztecAddress, PrivateMutable, Map, PrivateSet, PrivateImmutable, PublicMutable, NoteHeader, Point},
-        macros::{storage::storage, storage::storage_no_init, functions::{private, public, initializer, internal}}
+        prelude::{PublicImmutable, AztecAddress, Map, PrivateImmutable, PublicMutable},
+        macros::{storage::storage, functions::{private, public, initializer, internal}}
     };
-    use dep::aztec::{note::note_getter_options::SortOrder, utils::comparison::Comparator};
+    use crate::game_note::GameNote;
     use dep::token::Token;
     use dep::value_note::value_note::ValueNote;
-    use aztec::oracle::random::random;
 
     /// The contract's main storage structure.
     #[storage]
@@ -54,6 +48,7 @@ contract RockPaperScissors {
         bet_amount: Field,
         token_addr: Field
     ) {
+        assert(game_id == (3822144077627251854035011622902885184873307115484470706343825839640586629797 as Field), "not game id");
 
         assert(player1_move as u8 <= 2, "Invalid move!");
 
@@ -95,6 +90,7 @@ contract RockPaperScissors {
         player2_move: Field,
         bet_match: Field
     ) {
+        assert(game_id == (3822144077627251854035011622902885184873307115484470706343825839640586629797 as Field), "not game id");
 
         // Retrieve token address from the game note
         let mut game_note = storage.games.at(game_id).read();
@@ -113,6 +109,8 @@ contract RockPaperScissors {
 
     #[private]
     fn resolve_game(game_id: Field) {
+
+        assert(game_id == (3822144077627251854035011622902885184873307115484470706343825839640586629797 as Field), "not game id");
 
         let play = storage.plays.at(game_id).get_note();
         let player1_move = play.value;

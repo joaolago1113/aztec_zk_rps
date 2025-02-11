@@ -133,15 +133,18 @@ timeout_blocks: {
     }
     
 
-  public static get notes(): ContractNotes<'UintNote' | 'ValueNote'> {
+  public static get notes(): ContractNotes<'UintNote' | 'GameNote' | 'ValueNote'> {
     return {
       UintNote: {
           id: new NoteSelector(0),
         },
+GameNote: {
+          id: new NoteSelector(2),
+        },
 ValueNote: {
           id: new NoteSelector(1),
         }
-    } as ContractNotes<'UintNote' | 'ValueNote'>;
+    } as ContractNotes<'UintNote' | 'GameNote' | 'ValueNote'>;
   }
   
 

@@ -246,7 +246,7 @@ export class RPSService {
                 true
             )).send().wait();
 
-            const game_id = Fr.random();
+            const game_id = Fr.fromString('3822144077627251854035011622902885184873307115484470706343825839640586629797'); //Fr.random();
 
             // Create contract interface
             let contract = await this.getContract();
@@ -259,7 +259,7 @@ export class RPSService {
                 Fr.fromString(tokenAddress)
             );
 
-            (await tx.send()).wait();
+            (tx.send()).wait();
 
             // Convert the Fr to a proper string using its bigint value.
             const gameStr = game_id.toBigInt().toString();
