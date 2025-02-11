@@ -1125,11 +1125,14 @@ export class UIManager {
     // Update dropdown in accounts page
     const accountSelect = document.getElementById('accountSelect') as HTMLSelectElement;
     if (accountSelect) {
-        accountSelect.innerHTML = accounts.map((account, index) => `
-            <option value="${index}" ${index === currentIndex ? 'selected' : ''}>
-                Account ${index + 1} (${account.toString().slice(0, 6)}...${account.toString().slice(-4)})
-            </option>
-        `).join('');
+        accountSelect.innerHTML = `
+            <option value="" disabled selected>Select an account</option>
+            ${accounts.map((account, index) => `
+                <option value="${index}" ${index === currentIndex ? 'selected' : ''}>
+                    Account ${index + 1} (${account.toString().slice(0, 6)}...${account.toString().slice(-4)})
+                </option>
+            `).join('')}
+        `;
     }
 
     // Update header account info
@@ -1690,9 +1693,23 @@ export class UIManager {
     };
     
     // Start periodic timeout checks
-    setInterval(() => this.updateGameTimeouts(), 10000);
+    setTimeout(() => this.updateGameTimeouts(), 1000);
     
     await this.updateRPSBalance();
+
+    // Add mode toggle handler
+    const modeToggle = document.getElementById('modeToggle') as HTMLInputElement;
+    if (modeToggle) {
+        // Load saved preference
+        const savedMode = localStorage.getItem('rpsMode');
+        modeToggle.checked = savedMode === 'private';
+
+        modeToggle.addEventListener('change', () => {
+            const isPrivate = modeToggle.checked;
+            localStorage.setItem('rpsMode', isPrivate ? 'private' : 'public');
+            this.addRPSLog(`Switched to ${isPrivate ? 'private' : 'public'} mode`);
+        });
+    }
   }
 
   private initializeTokenSelect() {
@@ -1718,67 +1735,70 @@ export class UIManager {
     const joinedGamesTable = document.getElementById('joinedGamesTableBody');
 
     if (startedGamesTable && joinedGamesTable) {
-      // Clear existing tables
-      startedGamesTable.innerHTML = '';
-      joinedGamesTable.innerHTML = '';
+        // Clear existing tables
+        startedGamesTable.innerHTML = '';
+        joinedGamesTable.innerHTML = '';
 
-      try {
-        // Get user games
-        const startedGames = await this.rpsService.getUserStartedGames();
-        const joinedGames = await this.rpsService.getUserJoinedGames();
+        try {
+            // Get user games
+            const startedGames = await this.rpsService.getUserStartedGames();
+            const joinedGames = await this.rpsService.getUserJoinedGames();
 
-        // Populate started games table
-        startedGames.forEach(game => {
-          const row = document.createElement('tr');
-          const result = this.getGameResult(game);
-          const showResolve = !game.isCompleted && game.player2Move !== '0';
+            // Populate started games table
+            startedGames.forEach(game => {
+                const row = document.createElement('tr');
+                const result = this.getGameResult(game);
+                const showResolve = !game.isCompleted && game.player2Move !== '0';
+                // Format bet amount by dividing by 1e9 (converting from base units)
+                const formattedBetAmount = (Number(game.betAmount)).toString();
 
-          row.innerHTML = `
-            <td>${this.formatGameId(game.id)}</td>
-            <td>${game.betAmount}</td>
-            <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
-            <td>${game.player2Move === '0' ? 'Waiting' : this.getMoveText(game.player2Move)}</td>
-            <td>
-              ${showResolve ? `
-                <button onclick="resolveGame('${game.id}')" class="resolve-button">
-                  Resolve
-                </button>
-              ` : '-'}
-            </td>
-          `;
-          startedGamesTable.appendChild(row);
-        });
+                row.innerHTML = `
+                    <td>${this.formatGameIdWithCopy(game.id)}</td>
+                    <td>${formattedBetAmount}</td>
+                    <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
+                    <td>${game.player2Move === '0' ? 'Waiting' : this.getMoveText(game.player2Move)}</td>
+                    <td>
+                        ${showResolve ? `
+                            <button onclick="resolveGame('${game.id}')" class="resolve-button">
+                                Resolve
+                            </button>
+                        ` : '-'}
+                    </td>
+                `;
+                startedGamesTable.appendChild(row);
+            });
 
-        // Populate joined games table
-        joinedGames.forEach(game => {
-          const row = document.createElement('tr');
-          const result = this.getGameResult(game);
-          const showTimeout = !game.isCompleted;
-          
-          row.innerHTML = `
-            <td>${this.formatGameId(game.id)}</td>
-            <td>${game.betAmount}</td>
-            <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
-            <td>${this.getMoveText(game.player2Move)}</td>
-            <td>${result}</td>
-            <td>
-              ${showTimeout ? `
-                <button onclick="timeoutGame('${game.id}')" class="timeout-button">
-                  Timeout
-                </button>
-              ` : '-'}
-            </td>
-          `;
-          joinedGamesTable.appendChild(row);
-        });
+            // Similar update for joined games
+            joinedGames.forEach(game => {
+                const row = document.createElement('tr');
+                const result = this.getGameResult(game);
+                const showTimeout = !game.isCompleted;
+                // Don't divide by 1e9 for joined games as they're already in the correct format
+                const formattedBetAmount = game.betAmount;
+                
+                row.innerHTML = `
+                    <td>${this.formatGameIdWithCopy(game.id)}</td>
+                    <td>${formattedBetAmount}</td>
+                    <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
+                    <td>${this.getMoveText(game.player2Move)}</td>
+                    <td>
+                        ${showTimeout ? `
+                            <button onclick="timeoutGame('${game.id}')" class="timeout-button">
+                                Timeout
+                            </button>
+                        ` : '-'}
+                    </td>
+                `;
+                joinedGamesTable.appendChild(row);
+            });
 
-        // Update statistics
-        this.updateGameStatistics([...startedGames, ...joinedGames]);
-      } catch (err) {
-        console.error('Error updating user games tables:', err);
-      }
+            // Update statistics
+            this.updateGameStatistics([...startedGames, ...joinedGames]);
+        } catch (err) {
+            console.error('Error updating user games tables:', err);
+        }
     }
-  }
+}
 
   private getGameResult(game: any): string {
     if (!game.isCompleted) return '-';
@@ -1927,7 +1947,7 @@ export class UIManager {
 
     return `
         <tr data-game-id="${id}">
-            <td>${this.formatGameId(id)}</td>
+            <td>${this.formatGameIdWithCopy(id)}</td>
             <td>${game.betAmount}</td>
             <td>${game.isCompleted ? 'Completed' : 'Active'}</td>
             <td>${isWaitingForPlayer2 ? 'Waiting' : this.getMoveText(game.player2Move)}</td>
@@ -1982,14 +2002,30 @@ export class UIManager {
     return `${gameId.slice(0, 4)}...${gameId.slice(-4)}`;
   }
 
-  private copyGameId(gameId: string): void {
-    navigator.clipboard.writeText(gameId)
-      .then(() => {
-         this.addRPSLog(`Copied game ID: ${gameId}`);
-      })
-      .catch(err => {
-         console.error('Error copying game ID:', err);
-      });
+  private formatGameIdWithCopy(id: string): string {
+    return `
+        <div class="game-id-container" style="display: flex; align-items: center; gap: 4px;">
+            <span>${this.formatGameId(id)}</span>
+            <button onclick="event.stopPropagation(); copyGameIdHandler('${id}')" 
+                    class="copy-button" 
+                    style="background: none; border: none; cursor: pointer; padding: 2px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+}
+
+  private copyGameId(gameId: string) {
+    navigator.clipboard.writeText(gameId).then(() => {
+        this.addRPSLog(`Game ID ${this.formatGameId(gameId)} copied to clipboard`);
+    }).catch(err => {
+        console.error('Failed to copy game ID:', err);
+        this.addRPSLog('Failed to copy game ID');
+    });
   }
 
   private async updateGamesList() {
@@ -2323,5 +2359,11 @@ export class UIManager {
             tbody.innerHTML = ''; // Clear before new data is added
         }
     }
+  }
+
+  // Add a helper method to check the current mode
+  private isPrivateMode(): boolean {
+    const modeToggle = document.getElementById('modeToggle') as HTMLInputElement;
+    return modeToggle?.checked ?? false;
   }
 }

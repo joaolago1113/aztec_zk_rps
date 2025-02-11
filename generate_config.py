@@ -26,9 +26,6 @@ def extract_details(log_data):
     print("Deployment Salts:", deployment_salts)
     print("Deployer:", deployer)
 
-    # TEMPORARY TO FIX AWAIT MISSING BUG
-    partial_addresses = ['','','',''];
-
     # Details dict assembly
     details = {
         'tokens': [

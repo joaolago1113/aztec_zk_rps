@@ -7,7 +7,6 @@ import { TokenContract, TokenContractArtifact } from '@aztec/noir-contracts.js/T
 import { UIManager } from '../ui/UIManager.js';
 
 export class RPSService {
-    private contract!: RockPaperScissorsContract;
     private tokenContracts: Map<string, TokenContract> = new Map();
     private contractAddress!: AztecAddress;
     private accountService!: AccountService;
@@ -105,10 +104,7 @@ export class RPSService {
                 instance
             });
 
-            // Create contract interface
-            this.contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet!);
-
-            console.log('RPS Contract initialized at:', this.contract.address.toString());
+            //console.log('RPS Contract initialized at:', this.contract.address.toString());
         } catch (error) {
             console.error('Error initializing RPS contract:', error);
             throw error;
@@ -194,9 +190,7 @@ export class RPSService {
             // Check and initialize RPS contract if needed
             if (!this.contractInitialized) {
                 await this.initializeContract(this.accountService);
-            } else {
-                this.contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet!);
-            }
+            } 
             
             // Check and initialize token contracts if needed
             if (this.tokenContracts.size === 0) {
@@ -254,8 +248,11 @@ export class RPSService {
 
             const game_id = Fr.random();
 
+            // Create contract interface
+            let contract = await this.getContract();
+
             // Now call start_game
-            const tx = this.contract.methods.start_game(
+            const tx = contract.methods.start_game(
                 game_id,
                 playerMove,
                 BigInt(betAmount),
@@ -302,11 +299,13 @@ export class RPSService {
         try {
             const gameIdFr = Fr.fromString(gameId);
             
-            // Get game details to match bet amount
-            const gameNote = await this.contract.methods.get_game_by_id(gameIdFr).simulate();
+            const currentWallet = await this.accountService.getCurrentWallet();
+
+            let contract = await this.getContract();
+
+            const gameNote = await contract.methods.get_game_by_id(gameIdFr).simulate();
             const betMatch = gameNote.bet_amount;
 
-            const currentWallet = await this.accountService.getCurrentWallet();
             if (!currentWallet) {
                 throw new Error('No wallet available');
             }
@@ -318,8 +317,6 @@ export class RPSService {
 
             const tokenContractKey = '0x'+Fr.fromString(gameNote.token_address.toString()).toBuffer().toString('hex');
 
-            
-
             console.log("Looking for token contract with key:", tokenContractKey);
             console.log("Available token contract keys:", Array.from(this.tokenContracts.keys()));
             const tokenContract = this.tokenContracts.get(tokenContractKey);
@@ -329,7 +326,7 @@ export class RPSService {
 
             // Create transfer action for matching bet
             const transferAction = tokenContract!.methods.transfer_in_public(
-                this.contract.wallet.getAddress(),  // from
+                contract.wallet.getAddress(),  // from
                 this.contractAddress,               // to 
                 BigInt(betMatch),                  // amount
                 nonce                              // Use random nonce
@@ -347,7 +344,7 @@ export class RPSService {
             )).send().wait();
             
             // Join the game
-            const tx = await this.contract.methods.play_game(
+            const tx = await contract.methods.play_game(
                 gameIdFr,
                 playerMove,
                 betMatch
@@ -364,7 +361,7 @@ export class RPSService {
             this.saveUserGames();
             
             // Get updated game info
-            const updatedGame = await this.contract.methods.get_game_by_id(gameIdFr).simulate();
+            const updatedGame = await contract.methods.get_game_by_id(gameIdFr).simulate();
             
             const gameInfo = {
                 id: BigInt(gameId),
@@ -400,10 +397,10 @@ export class RPSService {
 
         try {
             const gameIdFr = Fr.fromString(gameId);
-            
-            console.log("Resolving game:", gameIdFr);
 
-            const tx = await this.contract.methods.resolve_game(gameIdFr).send();
+            let contract = await this.getContract();
+
+            const tx = contract.methods.resolve_game(gameIdFr).send();
             await tx.wait();
             
             console.log(`Game ${gameId} resolved successfully`);
@@ -422,7 +419,10 @@ export class RPSService {
      * @returns Game details including moves, completion status, and timing
      */
     async getGameDetails(gameId: string) {
-        const gameNote = await this.contract.methods.get_game_by_id(Fr.fromString(gameId)).simulate();
+
+        let contract = await this.getContract();
+
+        const gameNote = await contract.methods.get_game_by_id(Fr.fromString(gameId)).simulate();
         return {
             betAmount: gameNote.bet_amount.toString(),
             isCompleted: gameNote.is_completed,
@@ -496,9 +496,11 @@ export class RPSService {
     }
 
     async getGamesCount(): Promise<number> {
-        if(!this.contract) return 0;
+
+        let contract = await this.getContract();
+
         try {
-            const gamesLength = await this.contract.methods.get_games_length().simulate();
+            const gamesLength = await contract.methods.get_games_length().simulate();
             return Number(gamesLength);
         } catch (error) {
             console.error('Error getting games count:', error);
@@ -510,13 +512,15 @@ export class RPSService {
         const games = [];
         const count = await this.getGamesCount();
         
+        let contract = await this.getContract();
+
         for(let i = 0; i < count; i++) {
             try {
                 // Get game ID for this index
-                const gameId = await this.contract.methods.get_game_id_by_index(i).simulate();
+                const gameId = await contract.methods.get_game_id_by_index(i).simulate();
                 
                 // Get game details
-                const gameNote = await this.contract.methods.get_game_by_id(gameId).simulate();
+                const gameNote = await contract.methods.get_game_by_id(gameId).simulate();
 
                 console.log(gameNote);
                 
@@ -536,14 +540,20 @@ export class RPSService {
     }
 
     async getGameIdByIndex(index: number): Promise<Fr> {
-        let gameId = await this.contract.methods.get_game_id_by_index(index).simulate();
+        
+        let contract = await this.getContract();
+
+        let gameId = await contract.methods.get_game_id_by_index(index).simulate();
 
         gameId = Fr.fromString(gameId.toString());
         return gameId;
     }
 
     async getGameById(gameId: Fr): Promise<any> {
-        return await this.contract.methods.get_game_by_id(gameId).simulate();
+
+        let contract = await this.getContract(); 
+
+        return await contract.methods.get_game_by_id(gameId).simulate();
     }
 
     async getContractBalance(tokenAddress: string): Promise<string> {
@@ -574,8 +584,10 @@ export class RPSService {
             return this.TIMEOUT_BLOCKS;
         }
 
+        let contract = await this.getContract();
+
         try {
-            const timeoutBlocks = await this.contract.methods.get_timeout_blocks().simulate();
+            const timeoutBlocks = await contract.methods.get_timeout_blocks().simulate();
             this.TIMEOUT_BLOCKS = Number(timeoutBlocks);
             return this.TIMEOUT_BLOCKS;
         } catch (error) {
@@ -586,11 +598,12 @@ export class RPSService {
 
     async checkGameTimeout(gameId: string): Promise<{canTimeout: boolean, blocksLeft?: number}> {
         try {
+            let contract = await this.getContract();
             // Clean the gameId string to ensure it's just the number
             const cleanGameId = gameId.replace(/^(timeout-|info-)/, '');
 
             console.log('Checking timeout for game:', cleanGameId);
-            const gameNote = await this.contract.methods.get_game_by_id(BigInt(cleanGameId)).simulate();
+            const gameNote = await contract.methods.get_game_by_id(BigInt(cleanGameId)).simulate();
             
             // If game is completed or player 2 hasn't played yet (blocktime will be 0)
             if (gameNote.is_completed || gameNote.blocktime === 0n) {
@@ -624,8 +637,11 @@ export class RPSService {
     }
 
     async timeoutGame(gameId: string) {
+
+        let contract = await this.getContract();
+
         try {
-            await this.contract.methods.timeout_game(Fr.fromString(gameId)).send().wait();
+            await contract.methods.timeout_game(Fr.fromString(gameId)).send().wait();
             return true;
         } catch (error) {
             console.error('Error timing out game:', error);
@@ -760,5 +776,14 @@ export class RPSService {
             this.currentWalletAddress = newWalletAddress;
             this.loadUserGames(); // Load games for the new wallet
         }
+    }
+
+    async getContract() {
+        const currentWallet = await this.accountService.getCurrentWallet();
+
+        // Create contract interface
+        let contract = await RockPaperScissorsContract.at(this.contractAddress, currentWallet!);
+
+        return contract;
     }
 }

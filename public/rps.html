@@ -14,6 +14,26 @@
         <div class="rps-main-grid">
           <!-- Left Column: Game Controls -->
           <div class="rps-column">
+            <!-- Mode Switch - New placement -->
+            <div class="mode-switch" style="margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; background: var(--card); border-radius: var(--radius);">
+              <span>Public</span>
+              <label class="switch">
+                <input type="checkbox" id="modeToggle">
+                <span class="slider round"></span>
+              </label>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>Private</span>
+                <div class="info-icon-container">
+                  <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span class="tooltip">In private mode, player addresses are kept confidential</span>
+                </div>
+              </div>
+            </div>
+
             <div class="game-controls">
               <!-- Balance Display -->
               <div class="balance-card">

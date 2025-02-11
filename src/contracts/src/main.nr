@@ -25,7 +25,7 @@ contract RockPaperScissors {
     struct Storage<Context> {
         games_length: PublicMutable<Field, Context>,
 
-        plays: Map<Field, PrivateMutable<ValueNote, Context>, Context>,
+        plays: Map<Field, PrivateImmutable<ValueNote, Context>, Context>,
         games: Map<Field, PublicMutable<GameNote, Context>, Context>,
         game_ids: Map<Field, PublicImmutable<Field, Context>, Context>,
 
@@ -54,6 +54,7 @@ contract RockPaperScissors {
         bet_amount: Field,
         token_addr: Field
     ) {
+
         assert(player1_move as u8 <= 2, "Invalid move!");
 
         let mut player_move_note = ValueNote::new(player1_move, context.msg_sender());
@@ -94,6 +95,7 @@ contract RockPaperScissors {
         player2_move: Field,
         bet_match: Field
     ) {
+
         // Retrieve token address from the game note
         let mut game_note = storage.games.at(game_id).read();
         let token_addr = AztecAddress { inner: game_note.token_address };
@@ -111,8 +113,9 @@ contract RockPaperScissors {
 
     #[private]
     fn resolve_game(game_id: Field) {
+
         let play = storage.plays.at(game_id).get_note();
-        let player1_move = play.note.value;
+        let player1_move = play.value;
 
         RockPaperScissors::at(context.this_address())
             ._resolve_game(game_id, player1_move, context.msg_sender())
@@ -208,22 +211,18 @@ contract RockPaperScissors {
         storage.games.at(game_id).write(game_note);
     }
 
-    #[public]
     unconstrained fn get_game_by_id(game_id: Field) -> pub GameNote {
         storage.games.at(game_id).read()
     }
 
-    #[public]
     unconstrained fn get_game_id_by_index(index: Field) -> pub Field {
         storage.game_ids.at(index).read()
     }
 
-    #[public]
     unconstrained fn get_games_length() -> pub Field {
         storage.games_length.read()
     }
 
-    #[public]
     unconstrained fn get_timeout_blocks() -> pub Field {
         storage.timeout_blocks.read()
     }
