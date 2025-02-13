@@ -2274,3 +2274,23 @@ input:checked + .slider:hover {
     visibility: visible;
     opacity: 1;
 }
+
+.mode-switch {
+  position: relative; /* Enables absolute positioning for the TODO overlay */
+  filter: grayscale(100%); /* Greys out the entire element */
+}
+
+.mode-switch::before {
+  content: "TODO";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: bold;
+  pointer-events: none; /* Ensures the overlay doesn't block interactions */
+}
