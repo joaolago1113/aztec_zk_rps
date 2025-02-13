@@ -7,6 +7,10 @@ use dep::aztec::macros::aztec;
 contract RockPaperScissors {
 
     use dep::aztec::{
+        encrypted_logs::log_assembly_strategies::default_aes128::{
+            event::encode_and_encrypt_event_unconstrained,
+            note::{encode_and_encrypt_note, encode_and_encrypt_note_unconstrained},
+        },
         prelude::{PublicImmutable, AztecAddress, Map, PrivateImmutable, PublicMutable},
         macros::{storage::storage, functions::{private, public, initializer, internal}}
     };
@@ -48,13 +52,16 @@ contract RockPaperScissors {
         bet_amount: Field,
         token_addr: Field
     ) {
-        assert(game_id == (3822144077627251854035011622902885184873307115484470706343825839640586629797 as Field), "not game id");
 
         assert(player1_move as u8 <= 2, "Invalid move!");
 
         let mut player_move_note = ValueNote::new(player1_move, context.msg_sender());
 
-        storage.plays.at(game_id).initialize(&mut player_move_note);
+        storage.plays.at(game_id).initialize(&mut player_move_note).emit(encode_and_encrypt_note_unconstrained(
+            &mut context,
+            context.msg_sender(),
+            context.msg_sender(),
+        ));
 
         // Create and insert game note
         let mut game_note = GameNote::new(
@@ -90,7 +97,6 @@ contract RockPaperScissors {
         player2_move: Field,
         bet_match: Field
     ) {
-        assert(game_id == (3822144077627251854035011622902885184873307115484470706343825839640586629797 as Field), "not game id");
 
         // Retrieve token address from the game note
         let mut game_note = storage.games.at(game_id).read();
@@ -109,8 +115,6 @@ contract RockPaperScissors {
 
     #[private]
     fn resolve_game(game_id: Field) {
-
-        assert(game_id == (3822144077627251854035011622902885184873307115484470706343825839640586629797 as Field), "not game id");
 
         let play = storage.plays.at(game_id).get_note();
         let player1_move = play.value;

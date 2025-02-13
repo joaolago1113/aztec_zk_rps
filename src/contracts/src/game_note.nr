@@ -14,7 +14,6 @@ use dep::aztec::{
 
 global GAME_NOTE_LEN: u32 = 8;
 
-#[note]
 pub struct GameNote {
     pub id: Field,
     pub bet_amount: Field,
@@ -28,30 +27,6 @@ pub struct GameNote {
     pub owner: Field,
 }
 
-impl NullifiableNote for GameNote {
-    fn compute_nullifier(
-        self,
-        context: &mut PrivateContext,
-        note_hash_for_nullify: Field,
-    ) -> Field {
-        let owner_npk_m_hash: Field = get_public_keys( AztecAddress { inner: self.owner } ).npk_m.hash();
-        let secret = context.request_nsk_app(owner_npk_m_hash);
-        poseidon2_hash_with_separator(
-            [note_hash_for_nullify, secret],
-            GENERATOR_INDEX__NOTE_NULLIFIER as Field,
-        )
-    }
-    
-    unconstrained fn compute_nullifier_without_context(self) -> Field {
-        let note_hash_for_nullify = compute_note_hash_for_nullify(self);
-        let owner_npk_m_hash: Field = get_public_keys( AztecAddress { inner: self.owner } ).npk_m.hash();
-        let secret = get_nsk_app(owner_npk_m_hash);
-        poseidon2_hash_with_separator(
-            [note_hash_for_nullify, secret],
-            GENERATOR_INDEX__NOTE_NULLIFIER as Field,
-        )
-    }
-}
 
 impl GameNote {
     pub fn new(id: Field, bet_amount: Field, token_address: Field) -> Self {

@@ -26,6 +26,10 @@ def extract_details(log_data):
     print("Deployment Salts:", deployment_salts)
     print("Deployer:", deployer)
 
+
+    partial_addresses = ['','','','',''];
+
+
     # Details dict assembly
     details = {
         'tokens': [
@@ -83,7 +87,7 @@ def main():
 export const CONFIG = {{
   WALLETCONNECT_PROJECT_ID: '9c949a62a5bde2de36fcd8485d568064',
   l1RpcUrl: 'http://localhost:8545',
-  PXE_URL: 'http://localhost:8080',
+  PXE_URL: 'https://pxe.obsidion.xyz',
   
   TOKEN_CONTRACTS: [
     {{

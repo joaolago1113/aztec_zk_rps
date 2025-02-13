@@ -13,11 +13,19 @@ import { derivePublicKeyFromSecretKey } from '@aztec/circuits.js';
 import { getEcdsaKWallet } from '@aztec/accounts/ecdsa';
 import { EcdsaKAccountContractArtifact } from '@aztec/accounts/ecdsa';
 import { getCustomEcdsaKWallet } from '../utils/CustomWalletUtils.js';
+import { Eip1193Account } from "@shieldswap/wallet-sdk/eip1193";
+import { ReownPopupWalletSdk } from "@shieldswap/wallet-sdk";
+import { ExternalAccountWallet } from '../wallet/ExternalAccountWallet.js';
 
+// Fallback function for popup
+const fallbackOpenPopup = async (openPopup: () => Window | null): Promise<Window | null> => {
+  return Promise.resolve(openPopup());
+};
 
 export class AccountService {
   private currentAccountIndex: number | null = null;
   private tokenService: TokenService | null = null;
+  private externalWallet: AccountWallet | null = null;
 
   constructor(private pxe: PXE, private keystore: KeyStore, private uiManager: UIManager) {
     this.loadCurrentAccountIndex();
@@ -150,6 +158,10 @@ export class AccountService {
   }
   
   async getCurrentWallet(): Promise<AccountWallet | null> {
+    if (this.currentAccountIndex === -1) {
+      return this.externalWallet;
+    }
+    
     if (this.currentAccountIndex === null) {
       return null;
     }
@@ -201,10 +213,14 @@ export class AccountService {
   }
 
   
-  async getAccounts(): Promise<Fr[]> {
+  async getAccounts(): Promise<AztecAddress[]> {
     await this.validateCurrentAccountIndex();
-    const addresses = await this.keystore.getAccounts(); // AztecAddress[]
-    return addresses.map(address => new Fr(address.toBuffer()) );  }
+    const accounts = await this.keystore.getAccounts();
+    if (this.externalWallet) {
+      accounts.unshift(this.externalWallet.getAddress());
+    }
+    return accounts;
+  }
 
   getCurrentAccountIndex(): number | null {
     return this.currentAccountIndex;
@@ -309,6 +325,26 @@ export class AccountService {
     const accountAddress = accounts[index];
     const privateKeyBuffer = await this.keystore.getEcdsaSecretKey(accountAddress);
     return Fr.fromBuffer(privateKeyBuffer);
+  }
+
+  // Connect an external wallet using the PopupWalletSdk.
+  async connectOutsideWallet(): Promise<void> {
+    const wcOptions = {
+      projectId: "067a11239d95dd939ee98ea22bde21da",
+    };
+    
+    const params = {
+      fallbackOpenPopup: fallbackOpenPopup,
+    };
+    
+    const sdk = new ReownPopupWalletSdk(this.pxe, wcOptions, params);
+    const account = await sdk.connect();
+    if (!account) throw new Error("External wallet connection failed");
+    const accountWallet = new ExternalAccountWallet(this.pxe, account);
+    this.externalWallet = accountWallet;
+    this.currentAccountIndex = -1;
+    this.saveCurrentAccountIndex();
+    console.log("Connected wallet:", account.getAddress().toString());
   }
 
 }

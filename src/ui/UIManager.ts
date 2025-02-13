@@ -58,6 +58,7 @@ export class UIManager {
   }
   setAccountService(accountService: AccountService) {
     this.accountService = accountService;
+    console.log("AccountService set in UIManager"); // Debug log
   }
   setWalletConnectService(walletConnectService: WalletConnectService) {
     this.walletConnectService = walletConnectService;
@@ -98,11 +99,14 @@ export class UIManager {
         await this.setupRPSPage();
         break;
     }
+
   }
 
   private async updateAccountsPage() {
     await this.updateAccountUI();
     this.setAccountSelectionListener();
+    // Rebind the external wallet button after page content changes
+    this.bindConnectExternalWalletButton();
     // Any other account-specific updates
 
     const accountSelect = document.getElementById('accountSelect') as HTMLSelectElement | null;
@@ -1304,6 +1308,7 @@ export class UIManager {
     this.loadAccountState();
     this.setupDropdownMenu();
     this.setupRPSPage();
+    this.bindConnectExternalWalletButton();
 
     console.log('UI setup complete.');
   }
@@ -2365,5 +2370,21 @@ export class UIManager {
   private isPrivateMode(): boolean {
     const modeToggle = document.getElementById('modeToggle') as HTMLInputElement;
     return modeToggle?.checked ?? false;
+  }
+
+  bindConnectExternalWalletButton() {
+    const button = document.getElementById("connectExternalWallet");
+    if (button) {
+      button.addEventListener("click", async () => {
+        try {
+          await this.accountService.connectOutsideWallet();
+          alert("External wallet connected successfully!");
+          this.updateAccountUI();
+        } catch (err) {
+          console.error("Error connecting external wallet:", err);
+          alert("Failed to connect external wallet: " + (err as Error).message);
+        }
+      });
+    }
   }
 }

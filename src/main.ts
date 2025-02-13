@@ -88,7 +88,6 @@ async function main() {
     renderPage();
   });
 
-
   // Initial page render
   renderPage();
 }
