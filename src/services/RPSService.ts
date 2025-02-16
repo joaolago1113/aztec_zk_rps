@@ -36,6 +36,9 @@ export class RPSService {
      * @param address - (Optional) The address of an existing RPS contract to load
      */
     async initialize(accountService: AccountService) {
+
+        console.log("Initializing RPS service!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
         this.accountService = accountService;
 
         const currentWallet = await accountService.getCurrentWallet();
@@ -47,8 +50,15 @@ export class RPSService {
         if(this.initialized){
             // If already initialized but wallet changed, update the current wallet address
             const newWalletAddress = currentWallet.getAddress().toString();
+
+            console.log("NEW WALLET ADDRESS:", newWalletAddress);
+            console.log("CURRENT WALLET ADDRESS:", this.currentWalletAddress);
+            
             if (newWalletAddress !== this.currentWalletAddress) {
                 this.currentWalletAddress = newWalletAddress;
+                console.log("RE INITIAZLIING CONTRACTS>>>>>>>>>>>>>>>>>>>><");
+                await this.initializeContract(accountService);
+                await this.initializeTokenContract(accountService);
                 this.loadUserGames(); // Load games for the new wallet
             }
             return;
@@ -446,6 +456,9 @@ export class RPSService {
 
     async getTokenDetails(tokenAddress: string): Promise<{ name: string, symbol: string }> {
         const tokenContract = this.tokenContracts.get(tokenAddress);
+
+
+        console.log("Token contract wallet address:", tokenContract?.wallet.getAddress().toString());
         if (!tokenContract) {
             throw new Error(`Token contract not found for address ${tokenAddress}`);
         }

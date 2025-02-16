@@ -118,9 +118,9 @@ export class UIManager {
     accountSelect.addEventListener('change', async () => {
         try {
             await this.accountService.setCurrentAccountIndex(parseInt(accountSelect.value));
-            if (this.rpsService) {
-                await this.rpsService.updateCurrentWallet();
-            }
+            //if (this.rpsService) {
+            //    await this.rpsService.updateCurrentWallet();
+            //}
             await this.updateAccountUI();
         } catch (error) {
             console.error('Error changing account:', error);

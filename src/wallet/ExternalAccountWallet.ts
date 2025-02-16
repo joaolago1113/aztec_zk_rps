@@ -92,4 +92,10 @@ export class ExternalAccountWallet extends AccountWallet {
     return this.externalAccount;
   }
 
+  /**
+   * Returns true to indicate that this wallet is external.
+   */
+  public isExternalWallet(): boolean {
+    return true;
+  }
 } 

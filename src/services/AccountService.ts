@@ -13,7 +13,7 @@ import { derivePublicKeyFromSecretKey } from '@aztec/circuits.js';
 import { getEcdsaKWallet } from '@aztec/accounts/ecdsa';
 import { EcdsaKAccountContractArtifact } from '@aztec/accounts/ecdsa';
 import { getCustomEcdsaKWallet } from '../utils/CustomWalletUtils.js';
-import { Eip1193Account } from "@shieldswap/wallet-sdk/eip1193";
+import { CONFIG } from '../config.js';
 import { ReownPopupWalletSdk } from "@shieldswap/wallet-sdk";
 import { ExternalAccountWallet } from '../wallet/ExternalAccountWallet.js';
 
@@ -25,10 +25,14 @@ const fallbackOpenPopup = async (openPopup: () => Window | null): Promise<Window
 export class AccountService {
   private currentAccountIndex: number | null = null;
   private tokenService: TokenService | null = null;
-  private externalWallet: AccountWallet | null = null;
+  // Map external wallet addresses to their AccountWallet instance.
+  private externalWallets: Map<string, ExternalAccountWallet> = new Map();
+  // An ordered list of account addresses (both local and external) in the order they were added.
+  private accountOrder: string[] = [];
 
   constructor(private pxe: PXE, private keystore: KeyStore, private uiManager: UIManager) {
     this.loadCurrentAccountIndex();
+    this.loadAccountOrder();
   }
 
   setTokenService(tokenService: TokenService) {
@@ -46,6 +50,21 @@ export class AccountService {
     } else {
       localStorage.removeItem('currentAccountIndex');
     }
+  }
+
+  private loadAccountOrder(): void {
+    const storedOrder = localStorage.getItem('accountOrder');
+    if (storedOrder) {
+      try {
+        this.accountOrder = JSON.parse(storedOrder);
+      } catch (err) {
+        this.accountOrder = [];
+      }
+    }
+  }
+
+  private saveAccountOrder(): void {
+    localStorage.setItem('accountOrder', JSON.stringify(this.accountOrder));
   }
 
   async importAccount(secretKey: string, use2FA: boolean = false, hotpsecret: string = ''): Promise<void> {
@@ -68,7 +87,14 @@ export class AccountService {
     if (!accountInKeystore) {
       await this.keystore.addAccount(secretKeyFr, partialAddress, use2FA, hotpsecret);
       const accounts = await this.keystore.getAccounts();
-      this.currentAccountIndex = accounts.length - 1;
+      const newAddress = accounts[accounts.length - 1].toString();
+      if (!this.accountOrder.includes(newAddress)) {
+        this.accountOrder.push(newAddress);
+        this.saveAccountOrder();
+      }
+      // Always select the newly imported local wallet.
+      const combined = await this.getCombinedAccounts();
+      this.currentAccountIndex = combined.length - 1;
       this.saveCurrentAccountIndex();
     } else {
       throw new Error('Account already exists in keystore');
@@ -100,8 +126,16 @@ export class AccountService {
 
         if (!accountInKeystore) {
           await this.keystore.addAccount(secretKey, partialAddress, use2FA, hotpSecret);
-          const accounts = await this.keystore.getAccounts();
-          this.currentAccountIndex = accounts.length - 1;
+          // Get the full account address from the keystore to ensure consistency.
+          const updatedAccounts = await this.keystore.getAccounts();
+          const newLocal = updatedAccounts[updatedAccounts.length - 1].toString();
+          if (!this.accountOrder.includes(newLocal)) {
+            this.accountOrder.push(newLocal);
+            this.saveAccountOrder();
+          }
+          // Always select the newly created local wallet.
+          const combined = await this.getCombinedAccounts();
+          this.currentAccountIndex = combined.length - 1;
           this.saveCurrentAccountIndex();
           return { secretKey, hotpSecret };
         }
@@ -158,23 +192,17 @@ export class AccountService {
   }
   
   async getCurrentWallet(): Promise<AccountWallet | null> {
-    if (this.currentAccountIndex === -1) {
-      return this.externalWallet;
-    }
-    
-    if (this.currentAccountIndex === null) {
+    const combined = await this.getCombinedAccounts();
+    if (this.currentAccountIndex === null || this.currentAccountIndex >= combined.length) {
       return null;
     }
-
-    const accounts = await this.keystore.getAccounts();
-    const accountAddress = accounts[this.currentAccountIndex];
-
-    const ecdsaSkBuffer = await this.keystore.getEcdsaSecretKey(accountAddress);
-    const ecdsaSk = Fr.fromBuffer(ecdsaSkBuffer);
-
-    const ecdsaKWallet = await getCustomEcdsaKWallet(this.pxe, accountAddress, ecdsaSk.toBuffer());
-
-    return ecdsaKWallet;
+    const selectedAddress = combined[this.currentAccountIndex];
+    // If the external wallet address matches, return the external wallet.
+    if (this.externalWallets.has(selectedAddress)) {
+      return this.externalWallets.get(selectedAddress)!;
+    }
+    // Otherwise return the local wallet.
+    return this.getWalletByAddress(selectedAddress);
   }
 
   async retrieveContractAddress(index?: number): Promise<CompleteAddress | null> {
@@ -214,10 +242,19 @@ export class AccountService {
 
   
   async getAccounts(): Promise<AztecAddress[]> {
-    await this.validateCurrentAccountIndex();
-    const accounts = await this.keystore.getAccounts();
-    if (this.externalWallet) {
-      accounts.unshift(this.externalWallet.getAddress());
+    // Build the list in the order stored in accountOrder.
+    const combinedOrder = await this.getCombinedAccounts();
+    const accounts: AztecAddress[] = [];
+    const localAccounts = await this.keystore.getAccounts();
+    for (const addr of combinedOrder) {
+      // First try to find a local account by matching its string representation.
+      const localAccount = localAccounts.find(a => a.toString() === addr);
+      if (localAccount) {
+        accounts.push(localAccount);
+      } else if (this.externalWallets.has(addr)) {
+        // Otherwise, if the address exists in our external wallet map, convert it.
+        accounts.push(AztecAddress.fromString(addr as `0x${string}`));
+      }
     }
     return accounts;
   }
@@ -227,17 +264,15 @@ export class AccountService {
   }
 
   async setCurrentAccountIndex(index: number | null) {
+    const combined = await this.getCombinedAccounts();
     if (index === null) {
       this.currentAccountIndex = null;
       this.saveCurrentAccountIndex();
+    } else if (index >= 0 && index < combined.length) {
+      this.currentAccountIndex = index;
+      this.saveCurrentAccountIndex();
     } else {
-      const accounts = await this.keystore.getAccounts();
-      if (index >= 0 && index < accounts.length) {
-        this.currentAccountIndex = index;
-        this.saveCurrentAccountIndex();
-      } else {
-        console.error('Invalid account index');
-      }
+      console.error('Invalid account index');
     }
   }
 
@@ -246,8 +281,13 @@ export class AccountService {
     const accountAddress = accounts[index];
     await this.keystore.removeAccount(accountAddress);
     
+    // Remove the address from the stored order.
+    const addrStr = accountAddress.toString();
+    this.accountOrder = this.accountOrder.filter(addr => addr !== addrStr);
+    this.saveAccountOrder();
+
     if (this.currentAccountIndex === index) {
-      this.currentAccountIndex = accounts.length > 1 ? 0 : null;
+      this.currentAccountIndex = this.accountOrder.length > 0 ? 0 : null;
       this.saveCurrentAccountIndex();
     } else if (this.currentAccountIndex !== null && this.currentAccountIndex > index) {
       this.currentAccountIndex--;
@@ -256,9 +296,9 @@ export class AccountService {
   }
 
   private async validateCurrentAccountIndex() {
-    const accounts = await this.keystore.getAccounts();
-    if (this.currentAccountIndex === null || this.currentAccountIndex >= accounts.length) {
-      this.currentAccountIndex = accounts.length > 0 ? 0 : null;
+    const combined = await this.getCombinedAccounts();
+    if (this.currentAccountIndex === null || this.currentAccountIndex >= combined.length) {
+      this.currentAccountIndex = combined.length > 0 ? 0 : null;
       this.saveCurrentAccountIndex();
     }
   }
@@ -300,18 +340,16 @@ export class AccountService {
   }
 
   async getWalletByAddress(address: string): Promise<AccountWallet | null> {
-    const accounts = await this.keystore.getAccounts();
-    const index = accounts.findIndex(acc => acc.toString() === address);
-  
-    if (index === -1) {
-      return null;
+    // If the address corresponds to an external wallet, return that.
+    if (this.externalWallets.has(address)) {
+      return this.externalWallets.get(address)!;
     }
-
-    const accountAddress = accounts[index];
-    const ecdsaSkBuffer = await this.keystore.getEcdsaSecretKey(accountAddress);
+    const accounts = await this.keystore.getAccounts();
+    const localAcc = accounts.find(acc => acc.toString() === address);
+    if (!localAcc) return null;
+    const ecdsaSkBuffer = await this.keystore.getEcdsaSecretKey(localAcc);
     const ecdsaSk = Fr.fromBuffer(ecdsaSkBuffer);
-
-    return getCustomEcdsaKWallet(this.pxe, accountAddress, ecdsaSk.toBuffer());
+    return getCustomEcdsaKWallet(this.pxe, localAcc, ecdsaSk.toBuffer());
   }
 
   async getPrivateKey(address: string): Promise<Fr> {
@@ -330,21 +368,33 @@ export class AccountService {
   // Connect an external wallet using the PopupWalletSdk.
   async connectOutsideWallet(): Promise<void> {
     const wcOptions = {
-      projectId: "067a11239d95dd939ee98ea22bde21da",
+      projectId: CONFIG.WALLETCONNECT_PROJECT_ID,
     };
-    
-    const params = {
-      fallbackOpenPopup: fallbackOpenPopup,
-    };
-    
+    const params = { fallbackOpenPopup };
     const sdk = new ReownPopupWalletSdk(this.pxe, wcOptions, params);
+
     const account = await sdk.connect();
+
     if (!account) throw new Error("External wallet connection failed");
+
     const accountWallet = new ExternalAccountWallet(this.pxe, account);
-    this.externalWallet = accountWallet;
-    this.currentAccountIndex = -1;
+    // Add the external wallet to our collection:
+    const extAddress = account.getAddress().toString();
+    this.externalWallets.set(extAddress, accountWallet);
+    if (!this.accountOrder.includes(extAddress)) {
+      this.accountOrder.push(extAddress);
+      this.saveAccountOrder();
+    }
+    const combined = await this.getCombinedAccounts();
+    // Always select the external wallet (last index) when added:
+    this.currentAccountIndex = combined.length - 1;
     this.saveCurrentAccountIndex();
-    console.log("Connected wallet:", account.getAddress().toString());
+    console.log("Connected external wallet:", account.getAddress().toString());
+  }
+
+  async getCombinedAccounts(): Promise<string[]> {
+    // Just return the accountOrder array as stored.
+    return [...this.accountOrder];
   }
 
 }
