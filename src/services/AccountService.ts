@@ -165,13 +165,18 @@ export class AccountService {
   }
 
   async getSkKeysAtIndex() {
-    const accounts = await this.keystore.getAccounts();
+    const accounts = await this.getAccounts();
 
     if (this.currentAccountIndex === null) {
       this.currentAccountIndex = 0;
     }
 
     const accountAddress = accounts[this.currentAccountIndex];
+    
+    // If it's an external wallet, we can't get the keys
+    if (this.externalWallets.has(accountAddress.toString())) {
+      throw new Error('Cannot get keys for external wallet');
+    }
 
     // Get the public keys
     const incomingViewingPublicKey = await this.keystore.getMasterIncomingViewingPublicKey(accountAddress);
@@ -206,7 +211,7 @@ export class AccountService {
   }
 
   async retrieveContractAddress(index?: number): Promise<CompleteAddress | null> {
-    const accounts = await this.keystore.getAccounts();
+    const accounts = await this.getAccounts();
  
     if (this.currentAccountIndex === null) {
       return Promise.resolve(null);
@@ -216,7 +221,9 @@ export class AccountService {
 
     const contractAddress = accounts[this.currentAccountIndex];
 
-    const registeredAccount: CompleteAddress | undefined = await this.pxe.getRegisteredAccounts().then(accounts => accounts.find(account => account.address.toString() === contractAddress.toString()));
+    const registeredAccount: CompleteAddress | undefined = await this.pxe.getRegisteredAccounts().then(accounts => 
+      accounts.find(account => account.address.toString() === contractAddress.toString())
+    );
 
     if (!registeredAccount) {
       return Promise.resolve(null);
@@ -236,7 +243,7 @@ export class AccountService {
 
   private async isAccountInKeystore(wallet: AccountWallet): Promise<boolean> {
     const accountAddress = wallet.getCompleteAddress().address;
-    const accounts = await this.keystore.getAccounts();
+    const accounts = await this.getAccounts();
     return accounts.some(account => account.toString() === accountAddress.toString());
   }
 
@@ -277,9 +284,17 @@ export class AccountService {
   }
 
   async removeAccount(index: number) {
-    const accounts = await this.keystore.getAccounts();
+    const accounts = await this.getAccounts();
     const accountAddress = accounts[index];
-    await this.keystore.removeAccount(accountAddress);
+    
+    // Handle removal differently for external vs local accounts
+    if (this.externalWallets.has(accountAddress.toString())) {
+      // Remove from external wallets map
+      this.externalWallets.delete(accountAddress.toString());
+    } else {
+      // Remove from keystore
+      await this.keystore.removeAccount(accountAddress);
+    }
     
     // Remove the address from the stored order.
     const addrStr = accountAddress.toString();

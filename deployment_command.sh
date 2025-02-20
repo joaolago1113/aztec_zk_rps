@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Define PXE URL - set to obsidion URL based on config.ts
-# PXE_URL="https://pxe.obsidion.xyz"
-# NETWORK_FLAG="-n $PXE_URL"
+PXE_URL="https://pxe.obsidion.xyz"
+NETWORK_FLAG="-n $PXE_URL"
 
-NETWORK_FLAG=""
+# NETWORK_FLAG=""
 
 echo "" > deployment.log
 

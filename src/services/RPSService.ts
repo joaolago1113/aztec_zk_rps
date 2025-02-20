@@ -37,7 +37,6 @@ export class RPSService {
      */
     async initialize(accountService: AccountService) {
 
-        console.log("Initializing RPS service!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
         this.accountService = accountService;
 
@@ -50,13 +49,9 @@ export class RPSService {
         if(this.initialized){
             // If already initialized but wallet changed, update the current wallet address
             const newWalletAddress = currentWallet.getAddress().toString();
-
-            console.log("NEW WALLET ADDRESS:", newWalletAddress);
-            console.log("CURRENT WALLET ADDRESS:", this.currentWalletAddress);
             
             if (newWalletAddress !== this.currentWalletAddress) {
                 this.currentWalletAddress = newWalletAddress;
-                console.log("RE INITIAZLIING CONTRACTS>>>>>>>>>>>>>>>>>>>><");
                 await this.initializeContract(accountService);
                 await this.initializeTokenContract(accountService);
                 this.loadUserGames(); // Load games for the new wallet
