@@ -1577,6 +1577,37 @@ footer nav a:hover {
   background: color-mix(in srgb, var(--accent) 80%, black);
 }
 
+.resolve-button.loading,
+.timeout-button.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.resolve-button.loading::after,
+.timeout-button.loading::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid var(--primary-foreground);
+  border-radius: 50%;
+  border-right-color: transparent;
+  animation: button-loading-spinner 0.75s linear infinite;
+}
+
+@keyframes button-loading-spinner {
+  from {
+    transform: rotate(0turn);
+  }
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 .loading-cell {
   text-align: center;
   padding: 2rem !important;

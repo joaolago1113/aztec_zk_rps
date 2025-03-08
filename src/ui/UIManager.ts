@@ -1692,6 +1692,11 @@ export class UIManager {
         try {
             await this.rpsService.timeoutGame(gameId);
             this.addRPSLog(`Successfully timed out game ${this.formatGameId(gameId)}!`);
+                // Wait for both updates to complete
+            await Promise.all([
+              this.updateGamesList(),
+              this.updateUserGamesTables() // Make sure this gets called
+            ]);
         } catch (err: any) {
             this.addRPSLog(`Error timing out game: ${err?.message || err}`);
         }
@@ -1714,6 +1719,14 @@ export class UIManager {
             localStorage.setItem('rpsMode', isPrivate ? 'private' : 'public');
             this.addRPSLog(`Switched to ${isPrivate ? 'private' : 'public'} mode`);
         });
+    }
+
+    // Update game statistics with all games
+    try {
+      const allGames = await this.rpsService.getAllGames();
+      this.updateGameStatistics(allGames);
+    } catch (err) {
+      console.error('Error updating game statistics:', err);
     }
   }
 
@@ -1764,7 +1777,7 @@ export class UIManager {
                     <td>${game.player2Move === '0' ? 'Waiting' : this.getMoveText(game.player2Move)}</td>
                     <td>
                         ${showResolve ? `
-                            <button onclick="resolveGame('${game.id}')" class="resolve-button">
+                            <button onclick="this.classList.add('loading'); resolveGame('${game.id}')" class="resolve-button">
                                 Resolve
                             </button>
                         ` : '-'}
@@ -1788,7 +1801,7 @@ export class UIManager {
                     <td>${this.getMoveText(game.player2Move)}</td>
                     <td>
                         ${showTimeout ? `
-                            <button onclick="timeoutGame('${game.id}')" class="timeout-button">
+                            <button onclick="this.classList.add('loading'); timeoutGame('${game.id}')" class="timeout-button" id="timeout-${game.id}">
                                 Timeout
                             </button>
                         ` : '-'}
@@ -1805,36 +1818,83 @@ export class UIManager {
     }
 }
 
-  private getGameResult(game: any): string {
-    if (!game.isCompleted) return '-';
-    if (game.winner === '0') return 'Draw';
-    if (game.winner === '1') return 'Won';
-    if (game.winner === '2') return 'Lost';
-    return 'Unknown';
+  private updateGameStatistics(games: any[]) {
+    const stats = {
+      totalGames: 0,
+      gamesWon: 0,
+      gamesLost: 0,
+      gamesTied: 0,
+      gamesActive: 0
+    };
+    
+    games.forEach(game => {
+      stats.totalGames++;
+      
+      if (!game.isCompleted) {
+        if (game.player2Move !== '0') {
+          stats.gamesActive++;
+        }
+      } else {
+        const isUserStartedGame = this.isGameStartedByUser(game.id.toString());
+        const player1Move = parseInt(game.player1Move);
+        const player2Move = parseInt(game.player2Move);
+  
+        if (player1Move === player2Move) {
+          stats.gamesTied++;
+        } else {
+          const didPlayer1Win = (
+            (player1Move === 1 && player2Move === 3) || // Rock beats Scissors
+            (player1Move === 2 && player2Move === 1) || // Paper beats Rock
+            (player1Move === 3 && player2Move === 2)    // Scissors beats Paper
+          );
+  
+          if (isUserStartedGame) {
+            didPlayer1Win ? stats.gamesWon++ : stats.gamesLost++;
+          } else {
+            didPlayer1Win ? stats.gamesLost++ : stats.gamesWon++;
+          }
+        }
+      }
+    });
+    
+    // Update the statistics in the UI
+    const elements = {
+      totalGames: document.getElementById('statTotal'),
+      gamesWon: document.getElementById('statWins'),
+      gamesLost: document.getElementById('statLosses'),
+      gamesTied: document.getElementById('statDraws'),
+      gamesActive: document.getElementById('gamesActive')
+    };
+    
+    console.log("Game statistics:", stats);
+    
+    if (elements.totalGames) elements.totalGames.textContent = stats.totalGames.toString();
+    if (elements.gamesWon) elements.gamesWon.textContent = stats.gamesWon.toString();
+    if (elements.gamesLost) elements.gamesLost.textContent = stats.gamesLost.toString();
+    if (elements.gamesTied) elements.gamesTied.textContent = stats.gamesTied.toString();
+    if (elements.gamesActive) elements.gamesActive.textContent = stats.gamesActive.toString();
   }
 
-  private updateGameStatistics(games: any[]) {
-    const statsContainer = document.getElementById('gameStatistics');
-    if (!statsContainer) return;
-
-    const completedGames = games.filter(g => g.isCompleted);
-    const stats = {
-      total: completedGames.length,
-      wins: completedGames.filter(g => g.winner === '1').length,
-      losses: completedGames.filter(g => g.winner === '2').length,
-      draws: completedGames.filter(g => g.winner === '0').length
-    };
-
-    // Update individual stat elements
-    const statTotal = document.getElementById('statTotal');
-    const statWins = document.getElementById('statWins');
-    const statLosses = document.getElementById('statLosses');
-    const statDraws = document.getElementById('statDraws');
-
-    if (statTotal) statTotal.textContent = stats.total.toString();
-    if (statWins) statWins.textContent = stats.wins.toString();
-    if (statLosses) statLosses.textContent = stats.losses.toString();
-    if (statDraws) statDraws.textContent = stats.draws.toString();
+  private getGameResult(game: any): 'Won' | 'Lost' | 'Tied' | 'Active' {
+    if (!game.isCompleted) return 'Active';
+  
+    const isUserStartedGame = this.isGameStartedByUser(game.id.toString());
+    const player1Move = parseInt(game.player1Move);
+    const player2Move = parseInt(game.player2Move);
+  
+    // Rock = 1, Paper = 2, Scissors = 3
+    const moves = [player1Move, player2Move];
+    if (moves[0] === moves[1]) return 'Tied';
+  
+    const didPlayer1Win = (
+      (moves[0] === 1 && moves[1] === 3) || // Rock beats Scissors
+      (moves[0] === 2 && moves[1] === 1) || // Paper beats Rock
+      (moves[0] === 3 && moves[1] === 2)    // Scissors beats Paper
+    );
+  
+    return isUserStartedGame ? 
+      (didPlayer1Win ? 'Won' : 'Lost') : 
+      (didPlayer1Win ? 'Lost' : 'Won');
   }
 
   private addRPSLog(message: string) {
@@ -1902,25 +1962,28 @@ export class UIManager {
     }
   }
 
-  public updateGameRow(game: { id: bigint, betAmount: string, isCompleted: boolean, player2Move: string, blocktime: string }) {
-    const gameRow = document.querySelector(`tr[data-game-id="${game.id}"]`);
-    if (!gameRow) return;
+  public updateGameRow(game: any) {
+    const row = document.querySelector(`tr[data-game-id="${game.id}"]`);
+    if (row) {
+      const isWaitingForPlayer2 = game.blocktime === '0';
+      const isUserStartedGame = this.isGameStartedByUser(game.id.toString());
+      const isUserJoinedGame = this.isGameJoinedByUser(game.id.toString());
+      const canTimeout = !isWaitingForPlayer2 && !game.isCompleted;
 
-    // Update status cell
-    const statusCell = gameRow.querySelector('td:nth-child(3)');
-    if (statusCell) {
-        statusCell.textContent = game.isCompleted ? 'Completed' : 'Active';
-    }
+      // Update status cell
+      const statusCell = row.querySelector('td:nth-child(3)');
+      if (statusCell) {
+          statusCell.textContent = game.isCompleted ? 'Completed' : 'Active';
+      }
 
-    // Update player 2 move cell
-    const moveCell = gameRow.querySelector('td:nth-child(4)');
-    if (moveCell) {
-        moveCell.textContent = game.blocktime === '0' ? 'Waiting' : this.getMoveText(game.player2Move);
-    }
+      // Update player 2 move cell
+      const moveCell = row.querySelector('td:nth-child(4)');
+      if (moveCell) {
+          moveCell.textContent = game.blocktime === '0' ? 'Waiting' : this.getMoveText(game.player2Move);
+      }
 
-    // Update actions cell
-    const actionsCell = gameRow.querySelector('td:nth-child(5)');
-    if (actionsCell) {
+      const actionsCell = row.querySelector('td:last-child');
+      if (actionsCell) {
         if (game.isCompleted) {
             actionsCell.innerHTML = '-';
         } else if (game.blocktime === '0') {
@@ -1929,26 +1992,28 @@ export class UIManager {
                     Play
                 </button>`;
         } else {
-            actionsCell.innerHTML = `
-                <div class="game-actions">
-                    <button onclick="resolveGame('${game.id}')" class="resolve-button">
-                        Resolve
-                    </button>
-                    <button onclick="timeoutGame('${game.id}')" class="timeout-button" id="timeout-${game.id}">
-                        Timeout
-                    </button>
-                    <div class="timeout-info" id="timeout-info-${game.id}"></div>
-                </div>`;
+          let actions = '<div class="game-actions">';
+          if (isUserStartedGame && !isWaitingForPlayer2 && !isUserJoinedGame) {
+            actions += `<button onclick="this.classList.add('loading'); resolveGame('${game.id}')" class="resolve-button">Resolve</button>`;
+          }
+          if (canTimeout && isUserJoinedGame) {
+            actions += `
+              <button onclick="this.classList.add('loading'); timeoutGame('${game.id}')" class="timeout-button" id="timeout-${game.id}">Timeout</button>
+              <div class="timeout-info" id="timeout-info-${game.id}"></div>`;
+          }
+          actions += '</div>';
+          actionsCell.innerHTML = actions;
         }
+      }
     }
   }
 
-  private generateGameRow(game: { id: bigint, betAmount: string, isCompleted: boolean, player2Move: string, blocktime: string }) {
+  private generateGameRow(game: { id: bigint, betAmount: string, isCompleted: boolean, player2Move: string, blocktime: string, player1Move?: string }) {
     const id = game.id.toString();
     const isWaitingForPlayer2 = game.blocktime === '0';
     const isUserStartedGame = this.isGameStartedByUser(id);
     const isUserJoinedGame = this.isGameJoinedByUser(id);
-    const canTimeout = !isWaitingForPlayer2 && !game.isCompleted; // Can timeout if player2 has moved and game isn't completed
+    const canTimeout = !isWaitingForPlayer2 && !game.isCompleted;
 
     return `
         <tr data-game-id="${id}">
@@ -1959,7 +2024,7 @@ export class UIManager {
             <td>
                 ${game.isCompleted ? '-' : 
                     isUserStartedGame && !isWaitingForPlayer2 ? 
-                        `<button onclick="resolveGame('${id}')" class="resolve-button">
+                        `<button onclick="this.classList.add('loading'); resolveGame('${id}')" class="resolve-button">
                             Resolve
                         </button>` :
                     (!isUserStartedGame && !isUserJoinedGame && isWaitingForPlayer2) ? 
@@ -1967,7 +2032,7 @@ export class UIManager {
                             Play
                         </button>` :
                     canTimeout ? 
-                        `<button onclick="timeoutGame('${id}')" class="timeout-button" id="timeout-${id}">
+                        `<button onclick="this.classList.add('loading'); timeoutGame('${id}')" class="timeout-button" id="timeout-${id}">
                             Timeout
                         </button>
                         <div class="timeout-info" id="timeout-info-${id}"></div>` :
@@ -1976,7 +2041,7 @@ export class UIManager {
             </td>
         </tr>
     `;
-}
+  }
 
   private isGameStartedByUser(gameId: string): boolean {
     if (!this.rpsService) return false;
@@ -2038,85 +2103,153 @@ export class UIManager {
     if (!gamesTableBody) return;
 
     try {
-        // Show initial loading indicator
-        gamesTableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="loading-cell">
-                    <div class="loading-container">
-                        <span>Loading games...</span>
-                    </div>
-                </td>
-            </tr>
-        `;
+      // Show initial loading indicator
+      gamesTableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="loading-cell">
+            <div class="loading-container">
+              <span>Loading games...</span>
+            </div>
+          </td>
+        </tr>
+      `;
 
-        // Get games count
-        const count = await this.rpsService.getGamesCount();
-        
-        // Clear loading message (so we can insert rows)
-        gamesTableBody.innerHTML = '';
-        
-        // Add loading indicator at bottom
-        const loadingRow = document.createElement('tr');
-        loadingRow.className = 'loading-row';
-        loadingRow.innerHTML = `
-            <td colspan="5" class="loading-cell subtle">
-                <div class="loading-container">
-                    <span>Loading more games...</span>
-                </div>
-            </td>
-        `;
-        gamesTableBody.appendChild(loadingRow);
+      // Get games count
+      const count = await this.rpsService.getGamesCount();
+      
+      // Clear loading message
+      gamesTableBody.innerHTML = '';
+      
+      // Add loading indicator at bottom
+      const loadingRow = document.createElement('tr');
+      loadingRow.className = 'loading-row';
+      loadingRow.innerHTML = `
+          <td colspan="5" class="loading-cell subtle">
+              <div class="loading-container">
+                  <span>Loading more games...</span>
+              </div>
+          </td>
+      `;
+      gamesTableBody.appendChild(loadingRow);
 
-        // Load games one by one in a non-blocking way.
-        for (let i = 0; i < count; i++) {
-            try {
-                const gameId = await this.rpsService.getGameIdByIndex(i);
-                const gameNote = await this.rpsService.getGameById(gameId);
-                
-                // Insert newly loaded game before the loading row
-                const tempContainer = document.createElement('tbody');
-                tempContainer.innerHTML = this.generateGameRow({
-                    id: gameId.toBigInt(),
-                    betAmount: gameNote.bet_amount.toString(),
-                    isCompleted: gameNote.is_completed,
-                    player2Move: gameNote.player2_move.toString(),
-                    blocktime: gameNote.blocktime.toString()
-                });
-                
-                const rowElement = tempContainer.firstElementChild;
-                if (rowElement) {
-                    gamesTableBody.insertBefore(rowElement, loadingRow);
-                }
-            } catch (error) {
-                console.error(`Error loading game at index ${i}:`, error);
+      // Load games one by one in a non-blocking way.
+      for (let i = 0; i < count; i++) {
+        try {
+          const gameId = await this.rpsService.getGameIdByIndex(i);
+          const gameNote = await this.rpsService.getGameById(gameId);
+          
+          if (gameNote) {
+            // Create row for the game
+            const tempContainer = document.createElement('tbody');
+            tempContainer.innerHTML = this.generateGameRow({
+              id: gameId.toBigInt(),
+              betAmount: gameNote.bet_amount.toString(),
+              isCompleted: gameNote.is_completed,
+              player2Move: gameNote.player2_move.toString(),
+              blocktime: gameNote.blocktime.toString(),
+              player1Move: gameNote.player1_move ? gameNote.player1_move.toString() : '0'
+            });
+            
+            const rowElement = tempContainer.firstElementChild;
+            if (rowElement && loadingRow.parentNode === gamesTableBody) {
+              gamesTableBody.insertBefore(rowElement, loadingRow);
             }
-            // Yield control to allow UI updates and events to be processed.
-            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+        } catch (error) {
+          console.error(`Error loading game at index ${i}:`, error);
         }
+        // Yield control to allow UI updates and events to be processed.
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
 
-        // Remove loading row when done
+      // Remove loading row when done
+      if (loadingRow.parentNode === gamesTableBody) {
         loadingRow.remove();
+      }
 
-        // Optionally, rebind global handlers if needed
-        window.resolveGame = async (gameId: string) => {
-            try {
-                await this.rpsService.resolveGame(gameId);
-                this.addRPSLog(`Successfully resolved game ${this.formatGameId(gameId)}!`);
-                await this.updateGamesList();
-            } catch (err: any) {
-                this.addRPSLog(`Error resolving game: ${err?.message || err}`);
-            }
-        };
+      // Update game statistics properly
+      this.updateStatistics();
 
     } catch (error) {
-        console.error('Error updating games list:', error);
-        gamesTableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="error-cell">
-                    Failed to load games. Please try again.
-                </td>
-            </tr>
-        `;
+      console.error('Error updating games list:', error);
+      gamesTableBody.innerHTML = `
+          <tr>
+              <td colspan="5" class="error-cell">
+                  Failed to load games. Please try again.
+              </td>
+          </tr>
+      `;
+    }
+  }
+
+  // New method to update statistics properly
+  private async updateStatistics() {
+    try {
+      // Get all user games for statistics
+      const startedGames = await this.rpsService.getUserStartedGames();
+      const joinedGames = await this.rpsService.getUserJoinedGames();
+      const allGames = [...startedGames, ...joinedGames];
+      
+      console.log("Games for statistics:", allGames.length, allGames);
+      
+      // Process statistics
+      const stats = {
+        totalGames: allGames.length,
+        gamesWon: 0,
+        gamesLost: 0,
+        gamesTied: 0,
+        gamesActive: 0
+      };
+      
+      allGames.forEach(game => {
+        if (!game.isCompleted) {
+          stats.gamesActive++;
+        } else {
+          // Get player moves, converting to numbers with fallbacks
+          const player1Move = parseInt(game.player1Move || '0');
+          const player2Move = parseInt(game.player2Move || '0');
+          
+          // Skip invalid moves
+          if (player1Move === 0 || player2Move === 0) return;
+          
+          const isUserStartedGame = this.isGameStartedByUser(game.id.toString());
+          
+          if (player1Move === player2Move) {
+            stats.gamesTied++;
+          } else {
+            const didPlayer1Win = (
+              (player1Move === 1 && player2Move === 3) || // Rock beats Scissors
+              (player1Move === 2 && player2Move === 1) || // Paper beats Rock
+              (player1Move === 3 && player2Move === 2)    // Scissors beats Paper
+            );
+            
+            if (isUserStartedGame) {
+              didPlayer1Win ? stats.gamesWon++ : stats.gamesLost++;
+            } else {
+              didPlayer1Win ? stats.gamesLost++ : stats.gamesWon++;
+            }
+          }
+        }
+      });
+      
+      // Update UI with statistics
+      const elements = {
+        totalGames: document.getElementById('statTotal'),
+        gamesWon: document.getElementById('statWins'),
+        gamesLost: document.getElementById('statLosses'),
+        gamesTied: document.getElementById('statDraws'),
+        gamesActive: document.getElementById('gamesActive')
+      };
+      
+      console.log("Game statistics:", stats);
+      
+      if (elements.totalGames) elements.totalGames.textContent = stats.totalGames.toString();
+      if (elements.gamesWon) elements.gamesWon.textContent = stats.gamesWon.toString();
+      if (elements.gamesLost) elements.gamesLost.textContent = stats.gamesLost.toString();
+      if (elements.gamesTied) elements.gamesTied.textContent = stats.gamesTied.toString();
+      if (elements.gamesActive) elements.gamesActive.textContent = stats.gamesActive.toString();
+    } catch (err) {
+      console.error('Error updating statistics:', err);
     }
   }
 
@@ -2135,7 +2268,7 @@ export class UIManager {
             ? '-' 
             : (game.player2Move === '0' 
                 ? '-' 
-                : `<button onclick="resolveGame('${game.id}')" class="resolve-button">
+                : `<button onclick="this.classList.add('loading'); resolveGame('${game.id}')" class="resolve-button">
                        Resolve
                     </button>`)}
       </td>

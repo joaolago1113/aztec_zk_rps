@@ -58,8 +58,11 @@ class ExternalAccountAdapter implements AccountInterface {
       toBuffer: () => this.externalAccount.address.toBuffer()
     };
   }
-
+  
   async createTxExecutionRequest(exec: ExecutionRequestInit): Promise<TxExecutionRequest> {
+
+    console.log("createTxExecutionRequest", exec);
+
     await this.ensureInitialized();
     
     const { calls, fee, nonce, cancellable } = exec;
@@ -196,8 +199,10 @@ class ExternalAccountAdapter implements AccountInterface {
     return this.version!;
   }
 
-
   async createAuthWit(messageHashOrIntent: Fr | Buffer | IntentAction): Promise<AuthWitness> {
+
+    console.log("createAuthWit", messageHashOrIntent);
+
     let param: string;
     if (messageHashOrIntent instanceof Fr) {
       param = messageHashOrIntent.toString();
@@ -215,11 +220,16 @@ class ExternalAccountAdapter implements AccountInterface {
     return result as AuthWitness;
   }
 
+/*
   async simulateTx(
     txRequest: TxExecutionRequest,
     simulatePublic: boolean,
     msgSender?: AztecAddress,
   ): Promise<TxSimulationResult> {
+
+    console.log("simulateTx", txRequest);
+
+
     const result = await this.externalAccount.simulateTransaction({
       calls: txRequest.argsOfCalls.map(args => new FunctionCall(
         'entrypoint',
@@ -234,9 +244,12 @@ class ExternalAccountAdapter implements AccountInterface {
     return result as unknown as TxSimulationResult;
   }
 
-  async sendTx(txProof: Tx): Promise<TxHash> {
+  async sendTx(tx: Tx): Promise<TxHash> {
+
+    console.log("sendTx", tx);
+
     const result = await this.externalAccount.sendTransaction({
-      calls: txProof.data.getNonRevertiblePublicCallRequests().map(call => new FunctionCall(
+      calls: tx.data.getNonRevertiblePublicCallRequests().map(call => new FunctionCall(
         'entrypoint',
         call.msgSender,
         call.functionSelector,
@@ -248,8 +261,8 @@ class ExternalAccountAdapter implements AccountInterface {
     });
     return result.getTxHash();
   }
+*/
 }
-
 /**
  * ExternalAccountWallet wraps an Eip1193Account into an AccountWallet-complaint adapter.
  */
