@@ -1,235 +1,146 @@
-![Aztec Wallet Logo](public/aztec.png)
+# Aztec Rock Paper Scissors
 
-# Aztec Wallet UI 
+A decentralized, Rock Paper Scissors game built on the Aztec Protocol. Play head-to-head matches with cryptocurrency betting, with game mechanics secured through Aztec's zero-knowledge proof technology.
 
-Aztec Wallet UI is a comprehensive, feature-rich wallet application built on the Aztec Protocol. It provides users with secure account management, seamless token operations, robust transaction handling, and seamless integration with decentralized applications through [ShieldSwap](https://docs.shieldswap.org/).
-
-Additionally, it includes a decentralized **Rock Paper Scissors** game, allowing users to engage in secure, on-chain gameplay with betting functionality powered by Aztec's privacy-preserving technology.
+![RPS Game Dashboard](https://github.com/user-attachments/assets/def9e1ac-3d17-40fc-bd1d-95b34e6f4877)
 
 ## Table of Contents
 
-- [Features](#features)
-  - [Account Management](#account-management)
-  - [Token Management](#token-management)
-  - [WalletConnect Integration](#walletconnect-integration)
-  - [Transaction Handling](#transaction-handling)
-  - [User Interface](#user-interface)
-  - [2FA Feature Through Account Abstraction](#2fa-feature-through-account-abstraction)
-  - [Rock Paper Scissors](#rock-paper-scissors)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Running the Application](#running-the-application)
-- [Deploying the Rock Paper Scissors Contract](#deploying-the-rock-paper-scissors-contract)
-  - [Creating a Wallet](#creating-a-wallet)
-  - [Deploying a Token](#deploying-a-token)
-  - [Deploying the RPS Contract](#deploying-the-rps-contract)
-- [Project Structure](#project-structure)
-- [License](#license)
+- [Introduction](#introduction)
+- [How to Play](#how-to-play)
+- [Game Mechanics](#game-mechanics)
+- [Building and Deploying](#building-and-deploying)
+- [Minting Tokens](#minting-tokens)
+- [UI Walkthrough](#ui-walkthrough)
+- [Troubleshooting](#troubleshooting)
 
-## Features
+## Introduction
 
-Aztec Wallet UI encompasses a wide range of features designed to provide users with a secure and efficient cryptocurrency management experience. Below is a detailed overview of each feature.
+This Rock Paper Scissors (RPS) game demonstrates the power of zk blockchain applications built on Aztec. Players can challenge each other to matches, place bets using tokens, and enjoy secure gameplay where moves are kept private until the game resolves.
 
-### Rock Paper Scissors
+## How to Play
 
-The Rock Paper Scissors page is a dynamic, decentralized game interface that leverages the Aztec protocol. With this feature, users can:
-- **Start a New Game:** Select a token, set a bet amount, and choose your move (Rock, Paper, or Scissors).
-- **Join Existing Games:** Enter an existing game ID and select your move to compete against another player.
-- **View Game Statistics & History:** Monitor active games, review past results (wins, losses, draws), and check detailed game stats.
-- **Timeout Functionality:** If a player fails to make a move within a designated time, the game can be timed out.
+The game follows standard Rock Paper Scissors rules with a cryptocurrency betting layer:
 
-The interface updates in real-time and provides an intuitive experience, ensuring secure gameplay backed by smart contracts.
+1. **Starting a Game**: Choose a token, select your move (Rock, Paper, or Scissors), set a bet amount, and create a new game.
+2. **Joining a Game**: Find a game you want to join, enter the game ID, select your move, and match the bet.
+3. **Resolving a Game**: After both players have made their moves, the creator must resolve the game to determine the winner or the game times out and the second player wins.
+4. **Game Results**: The winner receives both players' bets. In case of a tie, each player gets their bet back.
 
-![rockpaperscrissors](https://github.com/user-attachments/assets/23135611-ad6a-4641-87dc-1f5c76940432)
+## Game Mechanics
 
-### Account Management
+The game leverages Aztec's privacy features to ensure fair play:
 
-Effortlessly manage your cryptocurrency accounts with Aztec Wallet UI. Whether you're creating new accounts, importing existing ones, or switching between multiple accounts, the process is seamless and intuitive. Enhance the security of your accounts with optional **Two-Factor Authentication (2FA)** using **HMAC-based One-Time Passwords (HOTP)**.
+1. **Player 1 (Game Creator)**:
+   - Selects a move (Rock, Paper, Scissors)
+   - Deposits the bet amount
+   - Their move is stored *privately* on-chain - only they know what they played
 
-- **Creating Accounts:** Start by creating a standard account, followed by a 2FA-enabled account for enhanced security.
-  
-https://github.com/user-attachments/assets/7e8847fc-176b-409d-a544-b004851314df
-  
-- **Importing Accounts:** Easily import your existing accounts.
-  
-https://github.com/user-attachments/assets/01a7cfbf-df1c-4cfb-b8f5-73eb3dce9f46
+2. **Player 2 (Game Joiner)**:
+   - Enters the game ID of an existing game
+   - Selects their move and matches the bet amount
+   - Their move is stored *publicly* on-chain
 
-### Token Management
+3. **Game Resolution**:
+   - Only Player 1 can resolve the game since only they can access their private move
+   - The contract compares both moves and distributes winnings accordingly
 
-Aztec Wallet UI allows you to create new tokens, mint existing ones, import token contracts, and manage your token balances seamlessly. Execute essential token operations such as sending, unshielding, and shielding and redeeming directly from the wallet interface.
+4. **Timeout Protection**:
+   - If Player 1 doesn't resolve within a set timeframe, Player 2 can claim the entire pot
+   - This prevents Player 1 from abandoning the game after seeing Player 2's move
 
-https://github.com/user-attachments/assets/9a2c4b72-0907-47c5-af53-10e61ca341d6
-
-### WalletConnect Integration
-
-Connect the wallet to a wide range of decentralized applications (dApps). Seamlessly interact with various dApps, authorize transactions securely, and manage your connections directly within the wallet.
-
-https://github.com/user-attachments/assets/b6418b90-dc54-4916-ab27-38341af3292d
-
-### Transaction Handling
-
-Maintain a comprehensive overview of all your cryptocurrency transactions. Aztec Wallet UI provides a detailed transaction history, allowing you to filter transactions by action type, view in-depth information, and monitor pending transactions.
-
-https://github.com/user-attachments/assets/022e475a-e695-4510-aa38-4f208199be1f
-
-### User Interface
-
-Experience a clean, intuitive, and responsive user interface designed for optimal usability across all devices. The UI encompasses:
-
-- **Header and Footer:** Consistent navigation and branding elements that provide seamless access to different sections of the wallet.
-- **Dynamic Forms and Modals:** Interactive elements that facilitate various wallet operations.
-- **Responsive Tables:** Easily view and manage your token balances and transaction histories with adaptable table designs that adapt to different screen sizes.
-
-### 2FA Feature Through Account Abstraction
-
-Aztec Wallet UI leverages Aztec's Account Abstraction to provide users with the ability to enable **Two-Factor Authentication (2FA)** through **HMAC-based One-Time Passwords (HOTP)** for their contract accounts. 
-This implementation ensures that every time a user interacts with their account contract, they must provide a one-time key, significantly enhancing the security of their transactions. 
-Moreover, this abstraction provides flexibility and breathing room when dealing with complex DeFi protocols by accepting also the generated code before and after.
-
-## Getting Started
-
-Follow these instructions to set up and run the Aztec Wallet UI on your local machine.
+## Building and Deploying
 
 ### Prerequisites
 
-Ensure you have the following installed on your system:
-
-- **Node.js** (v20 or higher)
-- **yarn**
-- **Git**
+- Aztec SDK installed
+- Node.js v18 or higher
+- Access to an Aztec node (local or remote)
 
 ### Installation
 
-1. **Clone the Repository**
-
+1. Clone the repository:
    ```bash
-   git clone https://github.com/joaolago1113/aztec_wallet.git
-   cd aztec_wallet
+   git clone https://github.com/joaolago1113/aztec_zk_rps.git
+   cd aztec-rock-paper-scissors
    ```
 
-2. **Install Dependencies**
-
-   Using yarn:
-
+2. Install dependencies:
    ```bash
-   yarn
+   yarn install
    ```
 
-3. **Configure Environment Variables**
-
-   Change the `config.ts` file in the src directory and add the necessary configuration variables:
-
-   ```env
-   WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-   L1_RPC_URL=http://localhost:8545/
-   PXE_URL=https://localhost:8080/
-   ```
-
-   *Replace the placeholder values with your actual configuration details.*
-
-4. **Start the Aztec Sandbox**
-
-   The application relies on the Aztec sandbox environment. Follow the [Aztec Sandbox Quickstart](https://docs.aztec.network/guides/developer_guides/getting_started/quickstart) to set up and start the sandbox.
-
+3. Start the UI:
    ```bash
-   aztec start --sandbox
+   yarn dev
    ```
 
-   *This command initializes the sandbox environment necessary to test the wallet.*
+### Deploying the Contracts
 
-### Running the Application
+Use the provided deployment script to set up the necessary contracts:
 
-Start the development server:
+```bash
+./launch.sh
 ```
 
-### Deploying the Rock Paper Scissors Contract
+This script:
+1. Creates a wallet account
+2. Deploys three token contracts (TST1, TST2, TST3)
+3. Deploys the RockPaperScissors contract for each token
 
-Before you can use the Rock Paper Scissors game, you need to deploy both a token contract (for betting) and the RPS contract itself. Here's how to do it:
+Alternatively, you can deploy each contract manually:
 
-1. **Start the Sandbox Environment**
+```bash
+# Create account
+aztec-wallet create-account -a my-wallet
 
-   First, start the Aztec sandbox environment:
+# Deploy tokens
+aztec-wallet deploy TokenContractArtifact --from accounts:my-wallet --args "accounts:my-wallet TestToken1 TST1 18" -a testtoken1
 
-   ```bash
-   aztec start --sandbox
-   ```
+# Deploy RPS contract
+aztec-wallet deploy src/contracts/target/rock_paper_scissors-RockPaperScissors.json --from accounts:my-wallet --args "accounts:my-wallet 2" -a rps
+```
 
-2. **Creating a Wallet**
+## Minting Tokens
 
-   Before deploying contracts, you need a wallet. Create one using:
+Before playing, you'll need tokens in your wallet. Mint some with:
 
-   ```bash
-  aztec-wallet create-account -a my-wallet
-   ```
+```bash
+aztec-wallet send mint_to_public --from accounts:my-wallet --contract-address contracts:testtoken1 --args <YOUR_WALLET_ADDRESS> 10000000
+```
 
-   This will create a new wallet and store it as `my-wallet`.
+Replace `<YOUR_WALLET_ADDRESS>` with your actual wallet address.
 
-3. **Deploying a Token**
+## UI Walkthrough
 
-   Deploy the token contract that will be used for betting:
+### Game Dashboard
+The main game interface shows your balance, active games, and game statistics.
 
-   ```bash
-   aztec-wallet deploy TokenContractArtifact \
-     --from accounts:my-wallet \
-     --args accounts:my-wallet TestToken TST 18 \
-     -a testtoken
-   ```
+![RPS Game Dashboard](https://github.com/user-attachments/assets/def9e1ac-3d17-40fc-bd1d-95b34e6f4877)
 
-   Save the token contract address from the output. It will look something like:
-   ```
-   Contract deployed at 0x2e79e7b857ad43be762a2c32e5cc09425a743987ed1f1bed6ed520f60aac7702
-   ```
+### Starting a Game
+To start a new game, select a token to bet with, choose your move (Rock, Paper, or Scissors), enter your bet amount, and click "Start Game".
 
-4. **Deploying the RPS Contract**
+![Start Game Modal](https://github.com/user-attachments/assets/cb020d86-1842-49c0-bf49-6fa7bf0097d6)
 
-   Deploy the Rock Paper Scissors contract using the token address from the previous step:
+### Joining a Game
+To join an existing game, enter the game ID, select your move, and click "Join Game". The required bet amount will be automatically matched.
 
-   ```bash
-   aztec-wallet deploy src/contracts/target/rock_paper_scissors-RockPaperScissors.json \
-     --from accounts:my-wallet \
-     --args contracts:testtoken \
-     -a rps
-   ```
+![Join Game Modal](https://github.com/user-attachments/assets/b450a92f-ab25-47b8-9c5f-cf989f6f1a45)
 
-   Replace `<TOKEN_ADDRESS>` with the address from step 3.
+### Active Games
+The games table shows all games on the network, including:
+- Games you've created
+- Games you've joined
+- Games created by others
+- Completed games with results
 
-   The contract will be deployed and you'll see output like:
-   ```
-   Contract deployed at 0x168c6f6879cbbaec4d82ef8e4b4d081edc39810a06bc110f2f627da1be75f914
-   ```
-
-5. **Update Configuration**
-
-   Update the contract addresses in your `src/config.ts`:
-
-   ```typescript
-   export const CONFIG = {
-     // ...other config
-     ROCK_PAPER_SCISSORS_ADDRESS: '<RPS_CONTRACT_ADDRESS>',
-     RPS_CONTRACT: {
-       TOKEN_ADDRESS: '<TOKEN_ADDRESS>',
-       // ...other config
-     }
-   };
-   ```
-
-Now your contracts are deployed and the app is ready to use! You can start the development server and begin playing Rock Paper Scissors.
-
-
-mint_to_private to a wallet: aztec-wallet send mint_to_private --from accounts:my-wallet --contract-address contracts:testtoken --args accounts:my-wallet <WALLET_ADDRESS> 10000000 
-
-aztec-wallet send mint_to_public --from accounts:my-wallet --contract-address contracts:testtoken --args <WALLET_ADDRESS> 10000000 
-
-
-
-
-## Project Structure
+![Active Games Table](https://github.com/user-attachments/assets/0c18195d-0f40-4e3d-95e2-1e3b33f0bf77)
 
 ## License
 
-3
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-
-Have to obviosuly send tokens to the address before starting a game.
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
